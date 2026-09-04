@@ -64,7 +64,9 @@ Each slice colocates its declared state in a sibling `.json` file with the same 
 
 ## Coverage
 
-- `core.sh` — profile skeleton: per-entry symlinks for skills/ and rules/ in both profiles
+- `core.sh` — profile skeleton: per-entry symlinks for skills/ and agents/ in both profiles
+- `ways-of-working.sh` — the always-on public rule, pinned to a released dotty tag, real file at both profiles' `rules/ways-of-working.md`
+- `claude-md.sh` — the global CLAUDE.md, real file at both profiles' `CLAUDE.md`
 - `tools.sh` — external tool installations (mcpvault, linear-tactic, op, op-sa, snow, obsidian)
 - `mcp-personal.sh` — MCP servers in `~/.claude-personal/.claude.json`
 - `mcp-professional.sh` — symlink to mcp-personal.sh (derives profile from filename)
