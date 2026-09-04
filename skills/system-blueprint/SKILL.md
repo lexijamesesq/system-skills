@@ -51,27 +51,40 @@ Every slice script in `blueprint/` must implement three verbs:
 | `capture` | Read live state for this slice's class+scope, write to sibling `.json` data file, append CHANGELOG stub. |
 
 Naming convention:
-- `<type>-<scope>.sh` for profile-scoped state (e.g. `mcp-personal.sh`, `hooks-professional.sh`)
-- `<type>.sh` for global state (e.g. `plugins-enabled.sh`)
+- `<type>-<scope>.sh` for profile-scoped state (e.g. `mcp-personal.sh`, `settings-professional.sh`)
+- `<type>.sh` for global state (e.g. `plugins.sh`)
 
-Each slice colocates its declared state in a sibling `.json` file with the same basename.
+Each slice colocates its declared state in a sibling `.json` (or, for a few slices, a plain text/markdown) file with the same basename. **`capture` is not one universal direction** — check a slice's own header before assuming: some slices' `capture` writes the declaration from live state (`core`, `mcp-personal`, `mcp-professional`, `settings-personal`, `settings-professional`, `update-mbp-exclusions`); most are report-only, a one-directional drift check that never writes the declared file back (`rosters`, `qa-private-vocab`, `gitleaks-rules`, `statusline`, `traffic-cone-shim`, `brewfile`, `ways-of-working`, `claude-md`, `metrics-config`, `tools`, `plugins`, `op-agent`).
 
 ## Files
 
-- `~/bin/dotty-private/.claude/blueprint/bootstrap.sh` — composition: runs all slices in apply mode
+- `~/bin/dotty-private/.claude/blueprint/bootstrap.sh` — composition: runs every slice below in apply mode, in the order it lists them
 - `~/bin/dotty-private/.claude/blueprint/CHANGELOG.md` — narrative log of captures
-- `~/bin/dotty-private/.claude/blueprint/<slice>.sh` + `<slice>.json` — individual slices
+- `~/bin/dotty-private/.claude/blueprint/<slice>.sh` (+ a sibling declared-state file for most slices) — one script per slice
 
 ## Coverage
 
-- `core.sh` — profile skeleton: per-entry symlinks for skills/ and agents/ in both profiles
-- `ways-of-working.sh` — the always-on public rule, pinned to a released dotty tag, real file at both profiles' `rules/ways-of-working.md`
+18 slices, per `bootstrap.sh`'s own `SLICES` array (that array is authoritative — this list mirrors it, not the reverse):
+
+- `op-agent.sh` — the 1Password service-account wrapper scripts, installed to a fixed path
+- `plugins.sh` — per-profile plugin marketplaces + enabled plugins (`plugins.json`); the shared plugin cache's install lane
+- `statusline.sh` — the statusline script, real file at both profiles' fixed path (not plugin-carriable — see [[estate-substrate-architecture]])
+- `traffic-cone-shim.sh` — the `~/.local/bin/traffic-cone` PATH shim into the installed `work-lifecycle` plugin's cache copy
+- `core.sh` — profile skeleton for `skills/`/`agents/` per-entry symlinks; both profiles declare `{}` for both surfaces today (the harness now serves skills/agents/hooks from plugins, not symlinks) — the slice stays live in case a future surface needs the mechanism, but has nothing to enact right now
+- `settings-personal.sh`, `settings-professional.sh` — each profile's real `settings.json` (hooks, env, statusLine, extraKnownMarketplaces, a hand-curated `permissions.allow` floor `capture` never overwrites)
+- `ways-of-working.sh` — the always-on public rule, pinned to a released dotty tag, installed as a real file under each profile's `rules/` directory on the machine (not tracked in this repo)
 - `claude-md.sh` — the global CLAUDE.md, real file at both profiles' `CLAUDE.md`
+- `brewfile.sh` — Homebrew formula versions vs. what each repo's CI pins to (status-only)
+- `gitleaks-rules.sh` — the gitleaks operator rules, real file at `~/.config/gitleaks/operator-rules.toml`
+- `rosters.sh` — the PII tag-taxonomy rosters, real file at `~/.config/estate/tag-taxonomy-rosters.md`
+- `qa-private-vocab.sh` — the private QA vocabulary, real file at `~/.config/estate/qa-private-vocab.md`
+- `metrics-config.sh` — Metrics project config files, written into that repo's own checkout (the one slice that writes inside a working tree — justified in its own header)
+- `update-mbp-exclusions.sh` — the Mini→laptop exclusions list, real file at `~/.config/estate/update-mbp-exclusions.txt`
 - `tools.sh` — external tool installations (mcpvault, linear-tactic, op, op-sa, snow, obsidian)
-- `mcp-personal.sh` — MCP servers in `~/.claude-personal/.claude.json`
+- `mcp-personal.sh` — MCP servers in the personal profile's Claude Code config file on the machine
 - `mcp-professional.sh` — symlink to mcp-personal.sh (derives profile from filename)
-- `verify.sh` — post-apply reference-resolution check for op:// refs
-- `bootstrap.sh` — runs all slices in dependency order, then verify
+
+Two more scripts live in the same directory but are not `bootstrap.sh` slices: `verify.sh` (post-apply reference-resolution check for `op://` refs, run by `bootstrap.sh` after every slice) and `blueprint-evals.sh` (the slice test harness).
 
 ## Related
 
