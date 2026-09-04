@@ -81,7 +81,7 @@ Each slice colocates its declared state in a sibling `.json` (or, for a few slic
 - `metrics-config.sh` — Metrics project config files, written into that repo's own checkout (the one slice that writes inside a working tree — justified in its own header)
 - `update-mbp-exclusions.sh` — the Mini→laptop exclusions list, real file at `~/.config/estate/update-mbp-exclusions.txt`
 - `tools.sh` — external tool installations (mcpvault, linear-tactic, op, op-sa, snow, obsidian)
-- `mcp-personal.sh` — MCP servers in the personal profile's `.claude.json` on the machine
+- `mcp-personal.sh` — MCP servers in the personal profile's Claude Code config file on the machine
 - `mcp-professional.sh` — symlink to mcp-personal.sh (derives profile from filename)
 
 Two more scripts live in the same directory but are not `bootstrap.sh` slices: `verify.sh` (post-apply reference-resolution check for `op://` refs, run by `bootstrap.sh` after every slice) and `blueprint-evals.sh` (the slice test harness).
