@@ -30,11 +30,11 @@ The pre-commit channel's release step: dotty's exported hooks (`.pre-commit-hook
 
 ## What this skill does NOT do
 
-- Does NOT run in CI — see `work-lifecycle`'s `CI.md` for why the plugin channel is hosted and this one isn't.
+- Does NOT run in CI — see core-skills' `.github/CI.md` for why the plugin channel is hosted and this one isn't.
 - Does NOT decide *whether* a release is due beyond the mechanical export-diff check — an operator or `/publish` merging a dotty PR is what makes this skill worth invoking, not something this skill watches for.
 - Does NOT touch a consumer's other pre-commit hook pins, or open a second PR while one is already open on the fixed branch.
 
 ## References
 
 - `scripts/release-dotty.sh` — the entire mechanism; read it before trusting a change to this skill.
-- `../publish/playbooks/gate.md` — the plugin channel's own release design, for the shape this skill deliberately doesn't take (hosted, per-plugin, PR-gated).
+- the `publish` skill's `playbooks/gate.md` in publish-skills — the plugin channel's own release design, for the shape this skill deliberately doesn't take (hosted, per-plugin, PR-gated).

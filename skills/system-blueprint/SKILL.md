@@ -69,7 +69,7 @@ Each slice colocates its declared state in a sibling `.json` (or, for a few slic
 - `op-agent.sh` — the 1Password service-account wrapper scripts, installed to a fixed path
 - `plugins.sh` — per-profile plugin marketplaces + enabled plugins (`plugins.json`); the shared plugin cache's install lane
 - `statusline.sh` — the statusline script, real file at both profiles' fixed path (not plugin-carriable — see [[estate-substrate-architecture]])
-- `traffic-cone-shim.sh` — the `~/.local/bin/traffic-cone` PATH shim into the installed `work-lifecycle` plugin's cache copy
+- `traffic-cone-shim.sh` — the `~/.local/bin/traffic-cone` PATH shim into the installed `core` plugin's cache copy
 - `core.sh` — profile skeleton for `skills/`/`agents/` per-entry symlinks; both profiles declare `{}` for both surfaces today (the harness now serves skills/agents/hooks from plugins, not symlinks) — the slice stays live in case a future surface needs the mechanism, but has nothing to enact right now
 - `settings-personal.sh`, `settings-professional.sh` — each profile's real `settings.json` (hooks, env, statusLine, extraKnownMarketplaces, a hand-curated `permissions.allow` floor `capture` never overwrites)
 - `ways-of-working.sh` — the always-on public rule, pinned to a released dotty tag, installed as a real file under each profile's `rules/` directory on the machine (not tracked in this repo)
