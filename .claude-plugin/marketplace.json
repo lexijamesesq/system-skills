@@ -1,0 +1,15 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "system",
+  "owner": { "name": "Lexi James", "url": "https://github.com/lexijamesesq" },
+  "metadata": { "description": "Skills that maintain the estate itself: declared-state capture and apply, laptop sync, project scaffolding, and dotty's release step." },
+  "plugins": [
+    {
+      "name": "system",
+      "source": "./",
+      "description": "Skills that maintain the estate itself: declared-state capture and apply, laptop sync, project scaffolding, and dotty's release step.",
+      "license": "MIT",
+      "repository": "https://github.com/lexijamesesq/system-skills"
+    }
+  ]
+}

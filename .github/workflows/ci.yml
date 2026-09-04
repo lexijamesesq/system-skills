@@ -1,0 +1,71 @@
+name: CI
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # Push-to-main runs must never be replaced while pending (a later no-bump
+  # push would silently drop a version-bump's release run); PR runs may.
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '22'
+      - name: Install Claude Code CLI 2.1.259
+        run: npm install -g @anthropic-ai/claude-code@2.1.259
+      - name: claude plugin validate --strict
+        run: claude plugin validate --strict .
+
+  release-check:
+    # PR-time, no writes; required by branch protection so content changes
+    # without a version bump are blocked, not reported after the fact.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Check plugin version discipline
+        run: bash .github/scripts/check-plugin-version.sh . system
+
+  release-tag:
+    # Push-time, main only. Tag + GitHub Release when the declared version
+    # isn't tagged yet. contents: write scoped to this job only.
+    if: github.event_name == 'push'
+    needs: [validate-and-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Configure git identity for the release tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '22'
+      - name: Install Claude Code CLI 2.1.259
+        run: npm install -g @anthropic-ai/claude-code@2.1.259
+      - name: Tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/tag-plugin-release.sh . system
