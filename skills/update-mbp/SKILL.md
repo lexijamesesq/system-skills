@@ -15,15 +15,15 @@ Designed for the pre-travel scenario: WFH happens on the Mini, the MBP drifts be
 - Credentials come from the 1Password SSH agent (`IdentityAgent Host *` in the same config). The user does not pass keys explicitly. Adapt if you use a different agent.
 - macOS major versions are intentionally divergent across machines. **Never propose a major macOS upgrade.** Only minor (security) bumps inside the target's existing major track are surfaced.
 - The Obsidian vault is synced by Obsidian Sync, not by this skill. If plugin counts diverge, flag it as an Obsidian Sync configuration issue — do not try to copy plugin folders.
-- `~/bin/dotty` is public (rules, git hooks, installers); `~/bin/dotty-private` is private (CLAUDE.md, settings, blueprint slices, and the `operator` plugin this skill ships in). The script paths below resolve through `${CLAUDE_SKILL_DIR}` — the installed plugin copy of this skill. The blueprint apply lane references dotty-private because the blueprint slices live there.
+- `~/bin/dotty` is public (rules, git hooks, installers); `~/bin/dotty-private` is private (CLAUDE.md, settings, blueprint slices, and the `operator` plugin this skill ships in). The script paths below resolve through `${CLAUDE_PLUGIN_ROOT}` — the installed plugin copy. The blueprint apply lane references dotty-private because the blueprint slices live there.
 
 ## Workflow
 
 ### 1. Collect
 
 ```bash
-${CLAUDE_SKILL_DIR}/scripts/collect-state.sh > /tmp/update-mbp-state/mini.txt
-scp -q ${CLAUDE_SKILL_DIR}/scripts/collect-state.sh mbp:/tmp/collect-state.sh
+${CLAUDE_PLUGIN_ROOT}/skills/update-mbp/scripts/collect-state.sh > /tmp/update-mbp-state/mini.txt
+scp -q ${CLAUDE_PLUGIN_ROOT}/skills/update-mbp/scripts/collect-state.sh mbp:/tmp/collect-state.sh
 ssh mbp '/tmp/collect-state.sh' > /tmp/update-mbp-state/mbp.txt
 ```
 
@@ -32,7 +32,7 @@ The collector is self-contained and re-deployable; it always overwrites the remo
 ### 2. Diff
 
 ```bash
-${CLAUDE_SKILL_DIR}/scripts/diff-state.sh \
+${CLAUDE_PLUGIN_ROOT}/skills/update-mbp/scripts/diff-state.sh \
   /tmp/update-mbp-state/mini.txt /tmp/update-mbp-state/mbp.txt \
   > /tmp/update-mbp-state/report.txt
 ```
@@ -48,7 +48,7 @@ Produces a sectioned report with `APPLY:` lines that the apply phase consumes. R
 ### 3. Apply
 
 ```bash
-${CLAUDE_SKILL_DIR}/scripts/apply-updates.sh \
+${CLAUDE_PLUGIN_ROOT}/skills/update-mbp/scripts/apply-updates.sh \
   /tmp/update-mbp-state/report.txt mbp [flags]
 ```
 
@@ -57,7 +57,7 @@ ${CLAUDE_SKILL_DIR}/scripts/apply-updates.sh \
 - `brew upgrade --cask` for outdated casks
 - `mas upgrade` per outdated MAS app id
 - `code --install-extension --force` for VS Code extensions
-- `git pull --ff-only` for dotty, dotty-private, oh-my-zsh — ordered and guarded: dotty-private is pulled first, the blueprint lane runs (below), and only then is dotty pulled, behind a guard that skips that one pull if any profile still symlinks a skill into the dotty checkout (a resolving link means the profile has not been pruned; the script finishes every other lane and exits non-zero naming it — prune with `core.sh apply --prune` from the dotty-private blueprint and re-run)
+- `git pull --ff-only` for dotty-private first, then (after the blueprint lane below) dotty and oh-my-zsh — the dotty pull alone is guarded by `scripts/lib/pre-pull-guard.sh`: it is skipped, and the run exits non-zero, while any profile still symlinks a skill into the dotty checkout
 - `pre-commit install` in dotty + dotty-private (skipped if `pre-commit` isn't installed — arrives via the Homebrew lane above)
 - symlink Capture One **Styles** (`~/Library/Application Support/Capture One/Styles` → `dotty-private/capture-one/Styles`) so `.costyle` masters travel with you — idempotent, guarded against clobbering a non-empty folder
 - `bash ~/bin/dotty-private/.claude/blueprint/bootstrap.sh` (system-blueprint apply, additive — reproduces declared MCP/hook/plugin state on the target)
@@ -135,7 +135,7 @@ repo=<dir>/*             # YYYY-MM-DD: glob example — covers all entries under
 
 Values are matched as shell globs, so `repo=.gemini/*` excludes every repo path under `.gemini/`, while plain values like `gitstatus` are exact matches. Always include the date and a short reason in the trailing comment so future you can decide whether the exclusion still applies. To un-exclude, delete or comment out the line.
 
-When the user says "exclude X" mid-run: (1) append the entry to the **fixed path** immediately, so the next collect+diff cycle reflects it; (2) run `bash ~/bin/dotty-private/.claude/blueprint/update-mbp-exclusions.sh capture` — it copies the installed file back into the declared one; (3) publish the declared change yourself in the same run (a worktree branch off dotty-private `main`, then `/publish`; the operator approves the push and merge prompts as usual). The operator never hand-commits an exclusion and the live checkout is never left dirty. Skipped items get no record — they simply don't go into the apply flags this round.
+When the user says "exclude X" mid-run: append the entry to the **fixed path** (the next collect+diff cycle sees it), then publish it yourself in the same run — from a dotty-private worktree, run that worktree's `.claude/blueprint/update-mbp-exclusions.sh capture` (installed file → declared file) and `/publish`; the operator approves the prompts. The live checkout is never touched. Skipped items get no record.
 
 ## Files
 

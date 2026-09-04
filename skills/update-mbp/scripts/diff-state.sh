@@ -146,7 +146,7 @@ comm -23 \
 | while read -r f; do
     [ -n "$f" ] || continue
     if is_excluded formula "$f"; then
-      echo "  - $f (excluded — see exclusions.txt)"
+      echo "  - $f (excluded — see the installed exclusions file)"
     else
       echo "  + $f"
       echo "APPLY: brew_install_formula name=$f"
@@ -173,7 +173,7 @@ comm -23 \
 | while read -r c; do
     [ -n "$c" ] || continue
     if is_excluded cask "$c"; then
-      echo "  - $c (excluded — see exclusions.txt)"
+      echo "  - $c (excluded — see the installed exclusions file)"
       continue
     fi
     # Don't auto-install machine-specific casks (display drivers, hardware utils
@@ -198,7 +198,7 @@ comm -23 \
     [ -n "$id" ] || continue
     name=$(section "$BASE" mas_list | awk -v i="$id" '$1==i {$1=""; sub(/^ +/,""); print; exit}')
     if is_excluded mas "$id"; then
-      echo "  - $id  $name (excluded — see exclusions.txt)"
+      echo "  - $id  $name (excluded — see the installed exclusions file)"
     else
       echo "  + $id  $name"
       echo "APPLY: mas_install id=$id"
@@ -278,7 +278,7 @@ comm -23 \
 | while read -r r; do
     [ -n "$r" ] || continue
     if is_excluded repo "$r"; then
-      echo "  - $r (excluded — see exclusions.txt)"
+      echo "  - $r (excluded — see the installed exclusions file)"
     else
       echo "  ? $r (review — not auto-cloned)"
     fi
