@@ -3,7 +3,7 @@
 # a skill into the dotty checkout.
 #
 # Why this exists: dotty no longer carries skills — every skill a profile
-# serves comes from an installed plugin (work-lifecycle, wiki, operator). A
+# serves comes from an installed plugin (core, system, personal, publish, wiki). A
 # profile link into ~/bin/dotty/.claude/skills is therefore always a leftover
 # from before that profile was pruned, and a dotty pull that deletes the
 # link's target would leave the profile with neither the link's target nor a
