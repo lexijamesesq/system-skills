@@ -17,6 +17,11 @@
 #   git_pull*, blueprint apply (additive).
 #   These are low-risk and reversible — they only update things already installed
 #   (blueprint apply default is additive, never removes undeclared items).
+#   Lane ORDER is load-bearing: dotty-private is pulled first, the blueprint
+#   lane runs (plugins installed + enabled, fixed-path files applied), and
+#   only then is dotty pulled — behind a guard that skips that one pull while
+#   any profile still symlinks a skill into the dotty checkout. The rest of
+#   the script still runs after a refusal; the exit status is non-zero.
 # Opt-in lanes (require explicit flag — human decides relevance):
 #   brew_install_formula, brew_install_cask, mas_install, macos_minor,
 #   blueprint --prune.
@@ -143,27 +148,22 @@ HEAD
     echo "else echo 'code CLI not installed; skipped'; fi"
   fi
 
-  if [ "$DO_GIT" = "1" ] && [ -n "$git_pull_repos$git_pull_paths" ]; then
-    echo "step 'pulling tracked git repos'"
+  # Deduped $HOME-relative pull list, split in two: dotty-private first (the
+  # blueprint lane below applies its declared state), everything else after
+  # the blueprint lane and behind the pre-pull guard. The report lists dotty
+  # first; the split happens here, not in diff-state.sh.
+  pull_paths=$(
+    {
+      for repo in $git_pull_repos; do echo "bin/$repo"; done
+      for path in $git_pull_paths; do echo "$path"; done
+    } | awk 'NF && !seen[$0]++'
+  )
+  pull_first=$(printf '%s\n' "$pull_paths" | grep -x 'bin/dotty-private' || true)
+  pull_rest=$(printf '%s\n' "$pull_paths" | grep -vx 'bin/dotty-private' || true)
 
-    # Pre-pull guard: refuse before any pull if a profile still symlinks a
-    # packaged dotty skill into the checkout without work-lifecycle enabled
-    # for that profile — a dotty pull would delete the link's target and
-    # leave the profile with neither the symlink nor the plugin. The guard
-    # function is defined in lib/pre-pull-guard.sh and catted into the
-    # generated remote script below; the four skills with no packaged-plugin
-    # home yet are exempt (named in that file).
-    cat "$SCRIPT_DIR/lib/pre-pull-guard.sh"
-    echo '_ump_pre_pull_guard || exit 1'
-    echo
-
-    # Build a deduped list of $HOME-relative paths.
-    pull_paths=$(
-      {
-        for repo in $git_pull_repos; do echo "bin/$repo"; done
-        for path in $git_pull_paths; do echo "$path"; done
-      } | awk 'NF && !seen[$0]++'
-    )
+  if [ "$DO_GIT" = "1" ] && [ -n "$pull_paths" ]; then
+    echo "step 'pulling tracked git repos (dotty-private first)'"
+    echo 'ump_rc=0'
     # Emit a helper function. For repos with an SSH GitHub origin we can't
     # auth via 1Password's agent over a non-TTY SSH session (OpenSSH 10's
     # bind-hostkey requirement vs 1P's missing extension support — see
@@ -205,9 +205,53 @@ _ump_pull() {
   esac
 }
 PULL_FN
+    # The pre-pull guard function (defined here, used after the blueprint
+    # lane): refuses the dotty pull while a profile still links a skill into
+    # the checkout. See lib/pre-pull-guard.sh for the rule and its reason.
+    cat "$SCRIPT_DIR/lib/pre-pull-guard.sh"
+    echo
+    if [ -n "$pull_first" ]; then
+      printf '_ump_pull %q\n' "$pull_first"
+    fi
+  fi
+
+  # System blueprint apply: reproduces harness state (plugins, settings, fixed-
+  # path files, MCP servers) from declared state in dotty-private/.claude/
+  # blueprint/. Runs AFTER the dotty-private pull so the latest declared state
+  # applies, and BEFORE the dotty pull so every plugin a profile needs is
+  # installed and enabled before dotty's tree changes underneath a link.
+  # Default is additive (non-destructive); --blueprint-prune enables full reconcile.
+  if [ "$DO_BLUEPRINT" = "1" ]; then
+    echo "step 'applying system blueprint'"
+    cat <<'BLUEPRINT_FN'
+_ump_apply_blueprint() {
+  local bs="$HOME/bin/dotty-private/.claude/blueprint/bootstrap.sh"
+  if [ ! -x "$bs" ]; then
+    echo "  no blueprint at $bs; skipped"
+    return 0
+  fi
+BLUEPRINT_FN
+    if [ "$BLUEPRINT_PRUNE" = "1" ]; then
+      echo "  bash \"\$bs\" --prune || echo '  ⚠ blueprint apply failed (continuing)'"
+    else
+      echo "  bash \"\$bs\" || echo '  ⚠ blueprint apply failed (continuing)'"
+    fi
+    echo "}"
+    echo "_ump_apply_blueprint"
+  fi
+
+  if [ "$DO_GIT" = "1" ] && [ -n "$pull_rest" ]; then
+    echo "step 'pulling tracked git repos (dotty and the rest, behind the guard)'"
     while IFS= read -r path; do
-      [ -n "$path" ] && printf '_ump_pull %q\n' "$path"
-    done <<< "$pull_paths"
+      [ -n "$path" ] || continue
+      if [ "$path" = "bin/dotty" ]; then
+        # Only the dotty pull is gated; a refusal skips it, the rest of the
+        # script continues, and the exit status is non-zero at the end.
+        echo 'if _ump_pre_pull_guard; then _ump_pull bin/dotty; else echo "  dotty pull skipped (guard refused)"; ump_rc=1; fi'
+      else
+        printf '_ump_pull %q\n' "$path"
+      fi
+    done <<< "$pull_rest"
   fi
 
   # Pre-commit hook activation: runs after git pulls so repos have the latest
@@ -255,29 +299,6 @@ else
 fi
 C1STYLES_FN
 
-  # System blueprint apply: reproduces harness state (MCP servers, hooks, etc.)
-  # from declared state in dotty-private/.claude/blueprint/. Runs AFTER git pulls
-  # so we apply the latest blueprint, BEFORE macOS restart so failures surface.
-  # Default is additive (non-destructive); --blueprint-prune enables full reconcile.
-  if [ "$DO_BLUEPRINT" = "1" ]; then
-    echo "step 'applying system blueprint'"
-    cat <<'BLUEPRINT_FN'
-_ump_apply_blueprint() {
-  local bs="$HOME/bin/dotty-private/.claude/blueprint/bootstrap.sh"
-  if [ ! -x "$bs" ]; then
-    echo "  no blueprint at $bs; skipped"
-    return 0
-  fi
-BLUEPRINT_FN
-    if [ "$BLUEPRINT_PRUNE" = "1" ]; then
-      echo "  bash \"\$bs\" --prune || echo '  ⚠ blueprint apply failed (continuing)'"
-    else
-      echo "  bash \"\$bs\" || echo '  ⚠ blueprint apply failed (continuing)'"
-    fi
-    echo "}"
-    echo "_ump_apply_blueprint"
-  fi
-
   if [ "$INCLUDE_MACOS" = "1" ] && [ -n "$macos_labels" ]; then
     echo "step 'applying macOS minor updates (will restart)'"
     while IFS= read -r label; do
@@ -290,6 +311,8 @@ BLUEPRINT_FN
   echo "step 'cleanup'"
   echo "brew cleanup || true"
   echo "step 'done'"
+  # shellcheck disable=SC2016  # intentional: expands on the remote host at run time
+  echo 'exit "${ump_rc:-0}"'
 } > "$remote"
 
 if [ "$DRY" = "1" ]; then
@@ -308,5 +331,7 @@ scp -q -o ServerAliveInterval=30 -o ServerAliveCountMax=240 "$remote" "$HOST:$re
 # -t allocates a pseudo-TTY so sudo can prompt for a password when needed
 # (mas upgrade, some cask upgrades, softwareupdate). The password goes
 # directly from the user's keyboard to the remote sudo — not captured.
+# The remote script's exit status must reach this process (a guard refusal is
+# a non-zero result, not a line of output), so capture it before the cleanup.
 ssh -t -o ServerAliveInterval=30 -o ServerAliveCountMax=240 \
-    "$HOST" "bash $remote_path; rm -f $remote_path"
+    "$HOST" "bash $remote_path; rc=\$?; rm -f $remote_path; exit \$rc"

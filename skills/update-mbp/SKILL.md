@@ -15,15 +15,15 @@ Designed for the pre-travel scenario: WFH happens on the Mini, the MBP drifts be
 - Credentials come from the 1Password SSH agent (`IdentityAgent Host *` in the same config). The user does not pass keys explicitly. Adapt if you use a different agent.
 - macOS major versions are intentionally divergent across machines. **Never propose a major macOS upgrade.** Only minor (security) bumps inside the target's existing major track are surfaced.
 - The Obsidian vault is synced by Obsidian Sync, not by this skill. If plugin counts diverge, flag it as an Obsidian Sync configuration issue — do not try to copy plugin folders.
-- `~/bin/dotty` is public (skills, agents, rules); `~/bin/dotty-private` is private (CLAUDE.md, settings.json, plugins/, blueprint slices). This skill lives in dotty; its own script paths below reflect that. The blueprint apply lane references dotty-private because the blueprint slices live there.
+- `~/bin/dotty` is public (rules, git hooks, installers); `~/bin/dotty-private` is private (CLAUDE.md, settings, blueprint slices, and the `operator` plugin this skill ships in). The script paths below resolve through `${CLAUDE_SKILL_DIR}` — the installed plugin copy of this skill. The blueprint apply lane references dotty-private because the blueprint slices live there.
 
 ## Workflow
 
 ### 1. Collect
 
 ```bash
-~/bin/dotty/.claude/skills/update-mbp/scripts/collect-state.sh > /tmp/update-mbp-state/mini.txt
-scp -q ~/bin/dotty/.claude/skills/update-mbp/scripts/collect-state.sh mbp:/tmp/collect-state.sh
+${CLAUDE_SKILL_DIR}/scripts/collect-state.sh > /tmp/update-mbp-state/mini.txt
+scp -q ${CLAUDE_SKILL_DIR}/scripts/collect-state.sh mbp:/tmp/collect-state.sh
 ssh mbp '/tmp/collect-state.sh' > /tmp/update-mbp-state/mbp.txt
 ```
 
@@ -32,7 +32,7 @@ The collector is self-contained and re-deployable; it always overwrites the remo
 ### 2. Diff
 
 ```bash
-~/bin/dotty/.claude/skills/update-mbp/scripts/diff-state.sh \
+${CLAUDE_SKILL_DIR}/scripts/diff-state.sh \
   /tmp/update-mbp-state/mini.txt /tmp/update-mbp-state/mbp.txt \
   > /tmp/update-mbp-state/report.txt
 ```
@@ -43,12 +43,12 @@ Produces a sectioned report with `APPLY:` lines that the apply phase consumes. R
 - **Obsidian plugin count = 0 on target while baseline > 0.** Indicates Obsidian Sync isn't syncing plugins to the MBP. Do not auto-fix; flag for the user to enable plugin sync in Obsidian settings.
 - **Safari major-version updates** (e.g., Safari 26.x offered to a 15.x machine). Filtered out of auto-apply by both diff (it's reported as "Safari update") and apply (regex skip).
 - **macOS minor update available** but `--macos` requires opt-in because it restarts the machine.
-- **hazel's `real-seed.json` present on baseline, absent on target.** Never auto-synced — a deliberate, undeclared hand-carry by hazel's own design (LEX-718). Flag it; the operator decides whether to carry it over.
+- **hazel's `real-seed.json` present on baseline, absent on target.** Never auto-synced — a deliberate, undeclared hand-carry by hazel's own design. Flag it; the operator decides whether to carry it over.
 
 ### 3. Apply
 
 ```bash
-~/bin/dotty/.claude/skills/update-mbp/scripts/apply-updates.sh \
+${CLAUDE_SKILL_DIR}/scripts/apply-updates.sh \
   /tmp/update-mbp-state/report.txt mbp [flags]
 ```
 
@@ -57,7 +57,7 @@ Produces a sectioned report with `APPLY:` lines that the apply phase consumes. R
 - `brew upgrade --cask` for outdated casks
 - `mas upgrade` per outdated MAS app id
 - `code --install-extension --force` for VS Code extensions
-- `git pull --ff-only` for dotty, dotty-private, oh-my-zsh — guarded: before any pull, the generated remote script refuses (exit 1, no pull) if a profile still symlinks a packaged skill into the dotty checkout without the `work-lifecycle` plugin enabled there, so an unattended run can never strand a profile mid-cutover
+- `git pull --ff-only` for dotty, dotty-private, oh-my-zsh — ordered and guarded: dotty-private is pulled first, the blueprint lane runs (below), and only then is dotty pulled, behind a guard that skips that one pull if any profile still symlinks a skill into the dotty checkout (a resolving link means the profile has not been pruned; the script finishes every other lane and exits non-zero naming it — prune with `core.sh apply --prune` from the dotty-private blueprint and re-run)
 - `pre-commit install` in dotty + dotty-private (skipped if `pre-commit` isn't installed — arrives via the Homebrew lane above)
 - symlink Capture One **Styles** (`~/Library/Application Support/Capture One/Styles` → `dotty-private/capture-one/Styles`) so `.costyle` masters travel with you — idempotent, guarded against clobbering a non-empty folder
 - `bash ~/bin/dotty-private/.claude/blueprint/bootstrap.sh` (system-blueprint apply, additive — reproduces declared MCP/hook/plugin state on the target)
@@ -117,13 +117,13 @@ If you ever need to force-upgrade a self-updating cask via brew, do it manually 
 Two distinct intents the user expresses during the picker:
 
 - **Skip X** — don't install in *this run*, but keep asking next time. Transient. Nothing is written to disk; the item simply isn't passed to apply. Use when the answer is "not tonight" / "maybe later" / "I'm not on the right network for that download."
-- **Exclude X** — stop asking entirely; this item isn't relevant for the MBP. Durable. Append to `exclusions.txt` with a comment so it never reappears in the picker. Use when the answer is "never" / "not on the laptop" / "Mini-only tool."
+- **Exclude X** — stop asking entirely; this item isn't relevant for the MBP. Durable. Append to the exclusions file (see Exclusions below) with a comment so it never reappears in the picker. Use when the answer is "never" / "not on the laptop" / "Mini-only tool."
 
 If the user is ambiguous ("don't bother with X"), default to **skip** and confirm before excluding. Excluding is the stronger commitment.
 
 ## Exclusions
 
-`exclusions.txt` next to the scripts records the durable "exclude" decisions. Format:
+The exclusions file records the durable "exclude" decisions. It is **declared state**: the source is `update-mbp-exclusions.txt` at the root of dotty-private, and the blueprint's `update-mbp-exclusions` slice installs it at the fixed path `${XDG_CONFIG_HOME:-~/.config}/estate/update-mbp-exclusions.txt`, which is the only path `scripts/diff-state.sh` reads. Nothing is read from or written to this skill's own directory — that is a plugin-cache copy, replaced on every plugin update. Format:
 
 ```
 formula=<formula-name>   # YYYY-MM-DD: short reason
@@ -135,14 +135,12 @@ repo=<dir>/*             # YYYY-MM-DD: glob example — covers all entries under
 
 Values are matched as shell globs, so `repo=.gemini/*` excludes every repo path under `.gemini/`, while plain values like `gitstatus` are exact matches. Always include the date and a short reason in the trailing comment so future you can decide whether the exclusion still applies. To un-exclude, delete or comment out the line.
 
-When the user says "exclude X" mid-run, append the entry immediately so the next collect+diff cycle reflects it. Skipped items get no record — they simply don't go into the apply flags this round.
-
-`exclusions.txt` is gitignored — same treatment as the repo's other private-config files (see `.gitignore` + `rules/shared-infrastructure.md`), since it reflects one person's real machine and stays local-only. `exclusions.sample.txt` ships as the format template; copy it to `exclusions.txt` on first use (or just let entries accumulate — the file is created empty and grown by the "exclude" flow above).
+When the user says "exclude X" mid-run: (1) append the entry to the **fixed path** immediately, so the next collect+diff cycle reflects it; (2) run `bash ~/bin/dotty-private/.claude/blueprint/update-mbp-exclusions.sh capture` — it copies the installed file back into the declared one; (3) publish the declared change yourself in the same run (a worktree branch off dotty-private `main`, then `/publish`; the operator approves the push and merge prompts as usual). The operator never hand-commits an exclusion and the live checkout is never left dirty. Skipped items get no record — they simply don't go into the apply flags this round.
 
 ## Files
 
 - `scripts/collect-state.sh` — sectioned state dump, runs on either machine
-- `scripts/diff-state.sh` — produces report.txt with APPLY: hint lines, honors exclusions.txt
+- `scripts/diff-state.sh` — produces report.txt with APPLY: hint lines, honors the installed exclusions file
 - `scripts/apply-updates.sh` — generates and runs remote apply script over SSH
-- `exclusions.txt` — items the user has marked irrelevant for the MBP (gitignored, personal)
-- `exclusions.sample.txt` — template showing the exclusions.txt format
+- `scripts/lib/pre-pull-guard.sh` — the guard the generated remote script runs before the dotty pull
+- `${XDG_CONFIG_HOME:-~/.config}/estate/update-mbp-exclusions.txt` — the installed exclusions file (declared as `update-mbp-exclusions.txt` in dotty-private; installed by its blueprint slice)

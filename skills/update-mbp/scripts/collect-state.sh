@@ -265,7 +265,7 @@ fi
 
 emit blueprint_declared_files
 # Presence + sha256 (never contents) of every machine-fixed-path file a
-# dotty-private blueprint slice installs (LEX-718) -- so a machine missing
+# dotty-private blueprint slice installs -- so a machine missing
 # one is a visible drift, not a silent gap discovered only when a skill
 # fails to find its rosters/vocab/config file. New slices of this class
 # (single declared file -> one fixed path) just need one more line here.
@@ -286,7 +286,7 @@ done
 
 emit hazel_seed_presence
 # NOT blueprint-managed -- hazel's own documented design is a deliberate,
-# undeclared hand-carry for this single-copy PII file (LEX-718 ruling,
+# undeclared hand-carry for this single-copy PII file (operator ruling,
 # system-d0 comment 8fe93003: "no hazel file is modified by this ticket").
 # Presence-only report so a machine lacking it is visible, never silent.
 F="$HOME/Agents/hazel/dev/seed/real-seed.json"

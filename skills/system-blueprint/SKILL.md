@@ -73,4 +73,4 @@ Each slice colocates its declared state in a sibling `.json` file with the same 
 
 ## Related
 
-- `~/bin/dotty/.claude/skills/update-mbp/SKILL.md` — pre-travel MBP sync that includes a blueprint-apply lane after dotty-private pull
+- `${CLAUDE_PLUGIN_ROOT}/skills/update-mbp/SKILL.md` — pre-travel MBP sync (this plugin's sibling skill) that includes a blueprint-apply lane after dotty-private pull

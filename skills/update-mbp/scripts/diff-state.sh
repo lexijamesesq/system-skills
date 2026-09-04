@@ -18,12 +18,17 @@ TGT="${2:?target state file}"
 [ -f "$TGT"  ] || { echo "missing target: $TGT"  >&2; exit 1; }
 
 # Exclusions file: items the user has previously marked "not relevant" so they
-# stop appearing in the missing-on-target picker. Lives next to this script.
+# stop appearing in the missing-on-target picker. Read from the FIXED PATH the
+# blueprint's update-mbp-exclusions slice installs (declared in dotty-private
+# as update-mbp-exclusions.txt) — never from beside this script: this script
+# runs from the installed plugin cache, which is a copy replaced on every
+# plugin update, so a file kept there would be lost. The same
+# `$HOME/bin/dotty-private/...` shape as BREWFILE below.
 # Format: one entry per line, of the form `kind=value` where kind is one of
 #   formula, cask, mas, repo
 # Lines starting with `#` and blank lines are ignored. A trailing `# comment`
 # is allowed.
-EXCLUSIONS_FILE="$(cd "$(dirname "$0")" && pwd)/../exclusions.txt"
+EXCLUSIONS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/estate/update-mbp-exclusions.txt"
 load_exclusions() {
   local kind="$1"
   [ -f "$EXCLUSIONS_FILE" ] || return 0
@@ -121,7 +126,7 @@ done
 # Brewfile.harness (not the Mini's live `brew leaves`, and NOT the plain
 # `Brewfile` — that one is personal-machine apps/casks/MAS, a separate file
 # by design; see Brewfile.harness's own header) is the declared source of
-# truth for which harness formulae should exist (LEX-708) — "the Mini is
+# truth for which harness formulae should exist — "the Mini is
 # the source of truth by convention only" was the exact drift this ticket
 # exists to close. Fixed path, matching the several other
 # `$HOME/bin/dotty[-private]/...` paths already hardcoded elsewhere in this
@@ -320,7 +325,7 @@ if [ "$b_count" != "$t_count" ] && [ "$b_count" -gt 0 ]; then
   diff <(printf '%s\n' "$b_plugins") <(printf '%s\n' "$t_plugins") | sed 's/^/    /'
 fi
 
-hd "Blueprint-declared fixed-path files (LEX-718)"
+hd "Blueprint-declared fixed-path files"
 # Presence-only (never contents) so a machine missing a declared file is a
 # visible gap, not one discovered only when a skill fails to find it. Both
 # a missing file and a present-but-stale one are fixed the same way: this
@@ -348,7 +353,7 @@ done
 
 hd "hazel real-seed.json (informational only, never synced)"
 # NOT blueprint-managed -- deliberate hand-carry by hazel's own design
-# (LEX-718 ruling). No APPLY hint: this ticket does not touch hazel.
+# (operator ruling). No APPLY hint: this lane does not touch hazel.
 b_seed=$(kv "$BASE" hazel_seed_presence real_seed_json)
 t_seed=$(kv "$TGT"  hazel_seed_presence real_seed_json)
 if [ "$b_seed" != "$t_seed" ]; then
