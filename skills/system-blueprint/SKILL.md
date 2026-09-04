@@ -72,7 +72,7 @@ Each slice colocates its declared state in a sibling `.json` (or, for a few slic
 - `traffic-cone-shim.sh` — the `~/.local/bin/traffic-cone` PATH shim into the installed `work-lifecycle` plugin's cache copy
 - `core.sh` — profile skeleton for `skills/`/`agents/` per-entry symlinks; both profiles declare `{}` for both surfaces today (the harness now serves skills/agents/hooks from plugins, not symlinks) — the slice stays live in case a future surface needs the mechanism, but has nothing to enact right now
 - `settings-personal.sh`, `settings-professional.sh` — each profile's real `settings.json` (hooks, env, statusLine, extraKnownMarketplaces, a hand-curated `permissions.allow` floor `capture` never overwrites)
-- `ways-of-working.sh` — the always-on public rule, pinned to a released dotty tag, real file at both profiles' `rules/ways-of-working.md`
+- `ways-of-working.sh` — the always-on public rule, pinned to a released dotty tag, installed as a real file under each profile's `rules/` directory on the machine (not tracked in this repo)
 - `claude-md.sh` — the global CLAUDE.md, real file at both profiles' `CLAUDE.md`
 - `brewfile.sh` — Homebrew formula versions vs. what each repo's CI pins to (status-only)
 - `gitleaks-rules.sh` — the gitleaks operator rules, real file at `~/.config/gitleaks/operator-rules.toml`
@@ -81,7 +81,7 @@ Each slice colocates its declared state in a sibling `.json` (or, for a few slic
 - `metrics-config.sh` — Metrics project config files, written into that repo's own checkout (the one slice that writes inside a working tree — justified in its own header)
 - `update-mbp-exclusions.sh` — the Mini→laptop exclusions list, real file at `~/.config/estate/update-mbp-exclusions.txt`
 - `tools.sh` — external tool installations (mcpvault, linear-tactic, op, op-sa, snow, obsidian)
-- `mcp-personal.sh` — MCP servers in `~/.claude-personal/.claude.json`
+- `mcp-personal.sh` — MCP servers in the personal profile's `.claude.json` on the machine
 - `mcp-professional.sh` — symlink to mcp-personal.sh (derives profile from filename)
 
 Two more scripts live in the same directory but are not `bootstrap.sh` slices: `verify.sh` (post-apply reference-resolution check for `op://` refs, run by `bootstrap.sh` after every slice) and `blueprint-evals.sh` (the slice test harness).
