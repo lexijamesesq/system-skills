@@ -50,12 +50,24 @@ REMOTE_SHA="$(git rev-parse origin/main)"
 [[ "$LOCAL_SHA" == "$REMOTE_SHA" ]] || refuse "local main ($LOCAL_SHA) is not origin/main ($REMOTE_SHA)"
 
 # ---- Re-entry: does HEAD already carry a CalVer tag? ----
+# LEX-757: a session must never push dotty's tag — this repo's tag
+# creation is her act (identity-selection gap fixed here: the script no
+# longer pushes under whatever credentials happen to be active). It
+# computes and validates the tag, then hands her the one command. Once
+# she has pushed it (from her terminal, or by creating the Release
+# directly in GitHub's UI, which cuts the tag under her own account too),
+# a later run's existing Release-check/consumer-bump logic proceeds
+# unchanged — that's still a session action, unaffected by this change.
 HEAD_TAG="$(git tag -l 'v20*' --points-at HEAD | sort -V | tail -1)"
 
 TAG_JUST_CUT=""
-if [[ -n "$HEAD_TAG" ]]; then
-  say "RE-ENTRY: HEAD already tagged $HEAD_TAG — skipping the tag phase, bumping only the consumers still lagging it."
+if [[ -n "$HEAD_TAG" ]] && git ls-remote --exit-code --tags origin "refs/tags/$HEAD_TAG" >/dev/null 2>&1; then
+  say "RE-ENTRY: HEAD already tagged $HEAD_TAG, confirmed on origin — skipping the tag phase, bumping only the consumers still lagging it."
   TAG_JUST_CUT="$HEAD_TAG"
+elif [[ -n "$HEAD_TAG" ]]; then
+  say "HEAD is tagged $HEAD_TAG locally, but it isn't on origin yet. Push it yourself, then re-run this script:"
+  say "  git -C \"$DOTTY\" push origin refs/tags/$HEAD_TAG"
+  exit 0
 else
   LAST_TAG="$(git tag -l 'v20*' --sort=-v:refname | head -1)"
 
@@ -91,12 +103,14 @@ else
 
   if [[ "$DRY_RUN" == "1" ]]; then
     say "DRY-RUN: would cut $NEW_TAG"
-  else
-    say "Cutting $NEW_TAG"
-    git tag -a "$NEW_TAG" -m "$NEW_TAG"
-    git push origin "refs/tags/$NEW_TAG"
+    exit 0
   fi
-  TAG_JUST_CUT="$NEW_TAG"
+
+  say "Cutting $NEW_TAG locally"
+  git tag -a "$NEW_TAG" -m "$NEW_TAG"
+  say "Tag created locally. A session never pushes dotty's tag — push it yourself, then re-run this script:"
+  say "  git -C \"$DOTTY\" push origin refs/tags/$NEW_TAG"
+  exit 0
 fi
 
 # Tag and Release are checked/created independently, in both the
