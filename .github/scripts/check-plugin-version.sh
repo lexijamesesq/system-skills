@@ -32,7 +32,16 @@ import json, sys
 print(json.load(open(sys.argv[1] + '/.claude-plugin/plugin.json'))['version'])
 " "$PLUGIN_DIR")"
 
-if git diff --quiet "$LATEST_TAG" HEAD -- "$PLUGIN_DIR"; then
+# .pre-commit-config.yaml and .github/CODEOWNERS are repo-level
+# infrastructure (a dotty pin bump, a path-ownership rule), never plugin
+# content -- excluded from the diff regardless of PLUGIN_DIR. For a
+# single-plugin repo (PLUGIN_DIR=".", the whole repo is the plugin) these
+# files sit inside PLUGIN_DIR and, unexcluded, make a dotty-bump or
+# CODEOWNERS-only PR fail this check for a change that isn't plugin
+# content at all (found live: wiki, publish-skills, and this repo).
+if git diff --quiet "$LATEST_TAG" HEAD -- "$PLUGIN_DIR" \
+    ":(exclude)${PLUGIN_DIR%/}/.pre-commit-config.yaml" \
+    ":(exclude)${PLUGIN_DIR%/}/.github/CODEOWNERS"; then
   echo "PASS $PLUGIN_NAME: tree identical to $LATEST_TAG"
   exit 0
 fi
