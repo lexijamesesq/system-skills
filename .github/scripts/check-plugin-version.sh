@@ -32,16 +32,19 @@ import json, sys
 print(json.load(open(sys.argv[1] + '/.claude-plugin/plugin.json'))['version'])
 " "$PLUGIN_DIR")"
 
-# .pre-commit-config.yaml and .github/CODEOWNERS are repo-level
-# infrastructure (a dotty pin bump, a path-ownership rule), never plugin
-# content -- excluded from the diff regardless of PLUGIN_DIR. For a
-# single-plugin repo (PLUGIN_DIR=".", the whole repo is the plugin) these
-# files sit inside PLUGIN_DIR and, unexcluded, make a dotty-bump or
-# CODEOWNERS-only PR fail this check for a change that isn't plugin
-# content at all (found live: wiki, publish-skills, and this repo).
+# .pre-commit-config.yaml, .github/CODEOWNERS, and this script itself are
+# repo-level infrastructure (a dotty pin bump, a path-ownership rule, the
+# release tooling's own upkeep), never plugin content -- excluded from the
+# diff regardless of PLUGIN_DIR. For a single-plugin repo (PLUGIN_DIR=".",
+# the whole repo is the plugin) these files sit inside PLUGIN_DIR and,
+# unexcluded, make a dotty-bump, a CODEOWNERS-only PR, or a fix to this
+# script itself fail this check for a change that isn't plugin content at
+# all (found live: wiki, publish-skills, and this repo -- the last one
+# self-referentially, when this exclude list's own fix was the change).
 if git diff --quiet "$LATEST_TAG" HEAD -- "$PLUGIN_DIR" \
     ":(exclude)${PLUGIN_DIR%/}/.pre-commit-config.yaml" \
-    ":(exclude)${PLUGIN_DIR%/}/.github/CODEOWNERS"; then
+    ":(exclude)${PLUGIN_DIR%/}/.github/CODEOWNERS" \
+    ":(exclude)${PLUGIN_DIR%/}/.github/scripts/check-plugin-version.sh"; then
   echo "PASS $PLUGIN_NAME: tree identical to $LATEST_TAG"
   exit 0
 fi
