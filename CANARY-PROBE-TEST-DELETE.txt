@@ -1,0 +1,5 @@
+# TEST CANARY -- a deliberately-planted FAKE AWS access-key-id (AKIA + 16
+# base32 chars), NOT a real secret. Acceptance proof: the estate core lane's
+# base-rules gitleaks MUST fail this PR. Draft PR, never merged; the branch is
+# deleted immediately after the red is confirmed.
+aws_access_key_id = AKIAXWR6777FQ4VHNVJS
