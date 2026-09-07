@@ -9,8 +9,31 @@
 # design. See ../SKILL.md for the full design and the plugin channel's
 # CI.md for why this half is local and that half is hosted.
 #
+# The tag itself is created through the GitHub API (git/tags then
+# git/refs) via `gh`, which resolves to the Claude App's installation
+# token inside a Claude Code session — the same identity every other `gh`
+# call in this script already runs as (gh release create, gh pr create).
+# No local `git tag`, no local `git push` of the tag: the ref is created
+# directly on GitHub, verified with a remote-authoritative ls-remote, then
+# folded into the local checkout with `git fetch --tags` so re-entry keeps
+# working exactly as before. Retry case is unchanged: a tag already on
+# origin with no Release yet reuses the tag and only cuts the Release.
+#
+# Consumer bumps operate on a fresh clone under this script's own scratch
+# directory, never on a discovered local checkout or worktree in place.
+# Consumer discovery still walks ~/bin, ~/Agents, ~/Repos to find and
+# identify consumers (read-only: grep, remote get-url, rev-parse) — but the
+# branch/commit/push work for a due consumer happens in a throwaway clone
+# of that consumer's remote, so no local checkout's branch is ever
+# switched and no shared worktree is ever touched. (The failure this
+# closes: a repo checked out as several linked worktrees off one .git
+# — an in-progress worktree got force-switched onto the bump branch and
+# left there when the old in-place logic's cleanup step failed to restore
+# it, because a sibling worktree already owned the branch it was trying to
+# check back out to.)
+#
 # --dry-run prints every decision (tag to cut or skip, consumers found,
-# whether each is due for a bump) without pushing a tag, cutting a
+# whether each is due for a bump) without creating a tag, cutting a
 # Release, or touching any consumer repo.
 set -euo pipefail
 
@@ -45,19 +68,15 @@ CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 [[ "$CURRENT_BRANCH" == "main" ]] || refuse "dotty checkout is on $CURRENT_BRANCH, not main"
 
 git fetch origin main --quiet
+# Tags are no longer created locally-then-pushed, so nothing else in this
+# checkout's history keeps local tags in sync with origin — fetch them
+# explicitly before any tag-related check below reads local state.
+git fetch origin --tags --quiet
 LOCAL_SHA="$(git rev-parse HEAD)"
 REMOTE_SHA="$(git rev-parse origin/main)"
 [[ "$LOCAL_SHA" == "$REMOTE_SHA" ]] || refuse "local main ($LOCAL_SHA) is not origin/main ($REMOTE_SHA)"
 
 # ---- Re-entry: does HEAD already carry a CalVer tag? ----
-# LEX-757: a session must never push dotty's tag — this repo's tag
-# creation is her act (identity-selection gap fixed here: the script no
-# longer pushes under whatever credentials happen to be active). It
-# computes and validates the tag, then hands her the one command. Once
-# she has pushed it (from her terminal, or by creating the Release
-# directly in GitHub's UI, which cuts the tag under her own account too),
-# a later run's existing Release-check/consumer-bump logic proceeds
-# unchanged — that's still a session action, unaffected by this change.
 HEAD_TAG="$(git tag -l 'v20*' --points-at HEAD | sort -V | tail -1)"
 
 TAG_JUST_CUT=""
@@ -65,9 +84,12 @@ if [[ -n "$HEAD_TAG" ]] && git ls-remote --exit-code --tags origin "refs/tags/$H
   say "RE-ENTRY: HEAD already tagged $HEAD_TAG, confirmed on origin — skipping the tag phase, bumping only the consumers still lagging it."
   TAG_JUST_CUT="$HEAD_TAG"
 elif [[ -n "$HEAD_TAG" ]]; then
-  say "HEAD is tagged $HEAD_TAG locally, but it isn't on origin yet. Push it yourself, then re-run this script:"
-  say "  git -C \"$DOTTY\" push origin refs/tags/$HEAD_TAG"
-  exit 0
+  # This script no longer creates a tag that isn't immediately pushed via
+  # the API, so this state shouldn't originate here anymore — a local-only
+  # tag on HEAD with nothing on origin is an anomaly (hand-run `git tag`,
+  # or leftover local state from before this script pushed tags itself).
+  # Refuse rather than guess which one it is.
+  refuse "HEAD carries local tag $HEAD_TAG that isn't on origin — this script never leaves a tag unpushed; remove the stray local tag or push it by hand, then re-run"
 else
   LAST_TAG="$(git tag -l 'v20*' --sort=-v:refname | head -1)"
 
@@ -102,19 +124,31 @@ else
     refuse "computed tag $NEW_TAG already exists on origin (race, or a hand-cut tag not yet fetched)"
 
   if [[ "$DRY_RUN" == "1" ]]; then
-    say "DRY-RUN: would cut $NEW_TAG"
+    say "DRY-RUN: would cut and push $NEW_TAG as the Claude App"
     exit 0
   fi
 
-  say "Cutting $NEW_TAG locally"
-  git tag -a "$NEW_TAG" -m "$NEW_TAG"
-  say "Tag created locally. A session never pushes dotty's tag — push it yourself, then re-run this script:"
-  say "  git -C \"$DOTTY\" push origin refs/tags/$NEW_TAG"
-  exit 0
+  say "Creating $NEW_TAG via the API (annotated tag object, then the ref) as the Claude App"
+  TAG_OBJECT_SHA="$(gh api "repos/lexijamesesq/dotty/git/tags" \
+    -f "tag=$NEW_TAG" -f "message=$NEW_TAG" -f "object=$LOCAL_SHA" -f "type=commit" \
+    --jq '.sha')"
+  [[ -n "$TAG_OBJECT_SHA" ]] || refuse "tag object creation for $NEW_TAG returned no sha"
+  gh api "repos/lexijamesesq/dotty/git/refs" \
+    -f "ref=refs/tags/$NEW_TAG" -f "sha=$TAG_OBJECT_SHA" >/dev/null
+
+  # Remote-authoritative verification, same posture as every other
+  # existence check in this script — never trust the mutation's own
+  # response as proof the ref is really there.
+  git ls-remote --exit-code --tags origin "refs/tags/$NEW_TAG" >/dev/null 2>&1 || \
+    refuse "$NEW_TAG created via the API but not visible on a fresh ls-remote — check for a propagation delay or API error before re-running"
+
+  git fetch origin --tags --quiet
+  say "Tagged and pushed $NEW_TAG as the Claude App."
+  TAG_JUST_CUT="$NEW_TAG"
 fi
 
 # Tag and Release are checked/created independently, in both the
-# fresh-cut and re-entry paths — a failure between pushing the tag and
+# fresh-cut and re-entry paths — a failure between creating the tag and
 # cutting the Release must not leave the Release permanently uncut on
 # the next run (the same class of gap caught in the CI-side release job;
 # re-entry here only skips the *tag*, never silently skips the Release).
@@ -167,6 +201,10 @@ if [[ ${#CONSUMERS[@]} -eq 0 ]]; then
   exit 0
 fi
 
+SCRATCH_ROOT=""
+cleanup_scratch() { [[ -n "$SCRATCH_ROOT" ]] && rm -rf "$SCRATCH_ROOT"; }
+trap cleanup_scratch EXIT
+
 for consumer in "${CONSUMERS[@]}"; do
   repo_name="$(basename "$consumer")"
   cfg="$consumer/.pre-commit-config.yaml"
@@ -186,12 +224,17 @@ for consumer in "${CONSUMERS[@]}"; do
     continue
   fi
 
-  say "  $repo_name: bumping $current_rev -> $TAG_JUST_CUT"
-  ( cd "$consumer"
-    git fetch origin --quiet
-    # Fast form: reads the remote's advertised HEAD symref directly,
-    # rather than git remote show's full (slower) round trip.
-    default_branch="$(git ls-remote --symref origin HEAD | sed -n 's#^ref: refs/heads/\(.*\)\tHEAD#\1#p')"
+  remote_url="$(git -C "$consumer" remote get-url origin)"
+  say "  $repo_name: bumping $current_rev -> $TAG_JUST_CUT (in a scratch clone — $consumer itself is never touched)"
+
+  [[ -n "$SCRATCH_ROOT" ]] || SCRATCH_ROOT="$(mktemp -d -t release-dotty-consumers.XXXXXX)"
+  clone_dir="$SCRATCH_ROOT/$repo_name"
+  git clone --quiet "$remote_url" "$clone_dir"
+  ( cd "$clone_dir"
+    # A fresh clone already has the remote's default branch checked out —
+    # no ls-remote --symref round trip needed, and no local checkout's own
+    # current branch to preserve or restore.
+    default_branch="$(git rev-parse --abbrev-ref HEAD)"
     if git ls-remote --exit-code --heads origin "$BUMP_BRANCH" >/dev/null 2>&1; then
       git checkout -B "$BUMP_BRANCH" "origin/$BUMP_BRANCH"
       git reset --hard "origin/$default_branch"
@@ -199,22 +242,31 @@ for consumer in "${CONSUMERS[@]}"; do
       git checkout -B "$BUMP_BRANCH" "origin/$default_branch"
     fi
     pre-commit autoupdate --repo https://github.com/lexijamesesq/dotty
-    if git diff --quiet -- "$cfg" 2>/dev/null; then
+    # The clone's own copy of the config, not $cfg (the discovery
+    # checkout's path) — $cfg lives outside this worktree entirely now
+    # that the bump runs in a scratch clone.
+    clone_cfg="$clone_dir/.pre-commit-config.yaml"
+    if git diff --quiet -- "$clone_cfg" 2>/dev/null; then
       say "    no change after autoupdate — skipping PR"
     else
-      git add "$cfg"
+      git add "$clone_cfg"
       git commit -q -m "chore: bump dotty pre-commit pin to $TAG_JUST_CUT"
       git push -u origin "$BUMP_BRANCH" --force-with-lease
-      # No --repo needed: gh infers it from this directory's own origin
-      # remote, which is exactly this consumer, not a git-URL string.
-      if gh pr view "$BUMP_BRANCH" >/dev/null 2>&1; then
-        say "    updated existing PR on $BUMP_BRANCH"
+      # `gh pr view <branch>` resolves to the MOST RECENT PR on that head
+      # branch regardless of state — every consumer has a merged dotty-bump
+      # PR from a prior cycle, so that check always found a stale merged
+      # PR and this script never actually opened a new one past the first
+      # cycle. List explicitly for an OPEN PR instead.
+      open_pr="$(gh pr list --head "$BUMP_BRANCH" --state open --json number --jq '.[0].number // empty')"
+      if [[ -n "$open_pr" ]]; then
+        say "    PR #$open_pr already open on $BUMP_BRANCH"
       else
         gh pr create --head "$BUMP_BRANCH" --base "$default_branch" \
           --title "chore: bump dotty pre-commit pin to $TAG_JUST_CUT" \
-          --body "Automated bump — $consumer's pin to lexijamesesq/dotty's exported hooks was behind $TAG_JUST_CUT."
+          --body "Automated bump — $repo_name's pin to lexijamesesq/dotty's exported hooks was behind $TAG_JUST_CUT." \
+          --reviewer lexijamesesq
       fi
     fi
-    git checkout "$default_branch"
   )
+  rm -rf "$clone_dir"
 done
