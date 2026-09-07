@@ -27,6 +27,8 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code@2.1.259
       - name: claude plugin validate --strict
         run: claude plugin validate --strict .
+      - name: release-dotty evals
+        run: bash skills/release-dotty/scripts/release-dotty.eval.sh
 
   release-check:
     # PR-time, no writes; required by branch protection so content changes
