@@ -21,6 +21,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT="$SCRIPT_DIR/release-dotty.sh"
 [[ -x "$SCRIPT" ]] || { echo "FATAL: $SCRIPT not executable"; exit 2; }
 
+# The script under test makes real commits inside its own scratch clones
+# (that's the whole point of fix 3) -- a bare CI runner has no global git
+# identity configured at all, unlike a real machine running this for real.
+# Env-var overrides, not `git config --global`, so running this eval
+# locally never touches a developer's own global git identity.
+export GIT_AUTHOR_NAME="release-dotty eval" GIT_AUTHOR_EMAIL="release-dotty-eval@example.invalid"
+export GIT_COMMITTER_NAME="release-dotty eval" GIT_COMMITTER_EMAIL="release-dotty-eval@example.invalid"
+
 passed=0
 failed=0
 check() { # <rc> <label> [detail]
