@@ -358,10 +358,78 @@ t_worktree_safety() {
   rm -rf "$root"
 }
 
+# ---- 4. due-check: the Actions-workflow export class counts too ----------
+# Same release channel, two export classes (LEX-755): a change to
+# .github/workflows/estate-*.yml or .github/actions/** must make a release
+# due, exactly like a pre-commit-hook export change already did; a change
+# to neither class (docs-only) must still report nothing to release.
+t_due_check_workflow_export() {
+  local root dotty bin out first_tag
+  root="$(make_dotty_fixture)"
+  dotty="$root/dotty-checkout"
+  bin="$root/bin"; mkdir -p "$bin" "$root/releases" "$root/home/bin" "$root/home/Agents" "$root/home/Repos"
+  make_fake_gh "$bin" "$root/calls.log"
+  make_fake_precommit "$bin" "unused"
+
+  # First run: nothing tagged yet, so this always cuts a tag regardless of
+  # export class -- just establishes LAST_TAG for the due-check below.
+  out="$(PATH="$bin:$PATH" HOME="$root/home" RELEASE_MARKER_DIR="$root/releases" PR_OPEN_MARKER="$root/pr-open" bash "$SCRIPT" "$dotty" 2>&1)"
+  first_tag="$(grep '^api-tags ' "$root/calls.log" | head -1 | awk '{print $2}')"
+  [[ -n "$first_tag" ]] || { check 1 "due-check: setup — first run produced a tag" "$out"; rm -rf "$root"; return; }
+  git -C "$dotty" fetch --quiet origin --tags
+
+  # A workflow-only change: no pre-commit-hooks.yaml/git-hooks/ touched.
+  mkdir -p "$dotty/.github/workflows" "$dotty/.github/actions"
+  echo "name: Estate CI" > "$dotty/.github/workflows/estate-ci.yml"
+  git -C "$dotty" add .github/workflows/estate-ci.yml
+  git -C "$dotty" commit --quiet -m "workflow export change"
+  git -C "$dotty" push --quiet origin main
+
+  : > "$root/calls.log"
+  out="$(PATH="$bin:$PATH" HOME="$root/home" RELEASE_MARKER_DIR="$root/releases" PR_OPEN_MARKER="$root/pr-open" bash "$SCRIPT" "$dotty" 2>&1)"
+  rc=0; [[ "$out" != *"nothing to release"* ]] || rc=1
+  check "$rc" "due-check: a workflow-only change (.github/workflows/estate-ci.yml) is due" "$out"
+  rc=0; grep -q '^api-tags ' "$root/calls.log" || rc=1
+  check "$rc" "due-check: the workflow-only change actually cut a new tag" "$(cat "$root/calls.log")"
+
+  rm -rf "$root"
+}
+
+t_due_check_docs_only_not_due() {
+  local root dotty bin out first_tag
+  root="$(make_dotty_fixture)"
+  dotty="$root/dotty-checkout"
+  bin="$root/bin"; mkdir -p "$bin" "$root/releases" "$root/home/bin" "$root/home/Agents" "$root/home/Repos"
+  make_fake_gh "$bin" "$root/calls.log"
+  make_fake_precommit "$bin" "unused"
+
+  out="$(PATH="$bin:$PATH" HOME="$root/home" RELEASE_MARKER_DIR="$root/releases" PR_OPEN_MARKER="$root/pr-open" bash "$SCRIPT" "$dotty" 2>&1)"
+  first_tag="$(grep '^api-tags ' "$root/calls.log" | head -1 | awk '{print $2}')"
+  [[ -n "$first_tag" ]] || { check 1 "due-check: setup — first run produced a tag" "$out"; rm -rf "$root"; return; }
+  git -C "$dotty" fetch --quiet origin --tags
+
+  # Docs-only: neither export class touched.
+  echo "# notes" > "$dotty/README.md"
+  git -C "$dotty" add README.md
+  git -C "$dotty" commit --quiet -m "docs only"
+  git -C "$dotty" push --quiet origin main
+
+  : > "$root/calls.log"
+  out="$(PATH="$bin:$PATH" HOME="$root/home" RELEASE_MARKER_DIR="$root/releases" PR_OPEN_MARKER="$root/pr-open" bash "$SCRIPT" "$dotty" 2>&1)"
+  rc=0; [[ "$out" == *"nothing to release"* ]] || rc=1
+  check "$rc" "due-check: a docs-only change (README.md) is NOT due" "$out"
+  rc=0; grep -q '^api-tags ' "$root/calls.log" && rc=1 || rc=0
+  check "$rc" "due-check: the docs-only change did not cut a tag"
+
+  rm -rf "$root"
+}
+
 echo "== release-dotty evals =="
 t_tag_via_api
 t_pr_open_check
 t_worktree_safety
+t_due_check_workflow_export
+t_due_check_docs_only_not_due
 
 echo
 if [[ "$failed" == "0" ]]; then

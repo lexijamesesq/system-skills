@@ -93,7 +93,16 @@ elif [[ -n "$HEAD_TAG" ]]; then
 else
   LAST_TAG="$(git tag -l 'v20*' --sort=-v:refname | head -1)"
 
-  if [[ -n "$LAST_TAG" ]] && git diff --quiet "$LAST_TAG" HEAD -- .pre-commit-hooks.yaml git-hooks/; then
+  # Two export classes share this one release channel: the pre-commit-hook
+  # exports (.pre-commit-hooks.yaml, git-hooks/**) and, since the "Local to
+  # merged" CI/CD rollout (LEX-755), the reusable-workflow exports
+  # (.github/workflows/estate-*.yml, .github/actions/**) that every caller's
+  # ci.yml/gate.yml pins by tag. A change to either makes a release due.
+  # Consumer-bump stays pre-commit-only below (LEX-755's own record): the
+  # workflow channel's consumers are kept current by each caller's own
+  # Dependabot github-actions updater, not by this script.
+  if [[ -n "$LAST_TAG" ]] && git diff --quiet "$LAST_TAG" HEAD -- \
+      .pre-commit-hooks.yaml git-hooks/ .github/workflows/estate-*.yml .github/actions/; then
     say "No export changed since $LAST_TAG — nothing to release."
     exit 0
   fi
