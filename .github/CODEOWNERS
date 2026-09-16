@@ -1,6 +1,39 @@
-# Default: every path waits for the operator's review.
-* @lexijamesesq
-# Unattended paths: a pattern with no owner clears ownership for it.
+# CODEOWNERS — coverage model (un-inverted).
+#
+# DEFAULT = UNOWNED: any path not matched below needs no code-owner review, so a
+# low-risk deterministic PR (and a Margot LOW-risk verdict) can merge without the
+# operator. There is deliberately NO `* @owner` catch-all.
+#
+# OWNED (listed below) = paths where a JUDGMENT change must have a human: the
+# safety / identity / gate machinery. The branch ruleset requires code-owner
+# review (with 0 baseline approvals), so touching any owned path holds the PR for
+# @lexijamesesq; touching only unowned paths does not.
+#
+# When adding a path: uncertain -> OWNED (under-coverage — an owned path left
+# unowned — is the dangerous direction).
 
-/README.md
-/LICENSE
+# --- Gate machinery (CI + gate scripts) ---
+/.github/workflows/                      @lexijamesesq
+/.github/scripts/                        @lexijamesesq
+/.github/dependabot.yml                  @lexijamesesq
+
+# --- Gate / lint configs (can DISABLE a check) ---
+/.pre-commit-config.yaml                 @lexijamesesq
+/.gitleaks.toml                          @lexijamesesq
+/.shellcheckrc                           @lexijamesesq
+
+# --- Governance & policy ---
+/.github/CODEOWNERS                      @lexijamesesq
+
+# --- Release / identity (plugin version = release identity) ---
+/.claude-plugin/marketplace.json         @lexijamesesq
+/.claude-plugin/plugin.json              @lexijamesesq
+
+# --- The estate RELEASE mechanism + machine-update scripts (+ their specs) ---
+/skills/release-dotty/scripts/           @lexijamesesq
+/skills/release-dotty/SKILL.md           @lexijamesesq
+/skills/update-mbp/scripts/              @lexijamesesq
+/skills/update-mbp/SKILL.md              @lexijamesesq
+
+# UNOWNED by default (flow without the operator): skills/new-project/**,
+# skills/system-blueprint/**, other skill markdown, README.md, LICENSE, .gitignore.
