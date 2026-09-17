@@ -29,9 +29,9 @@
 /.claude-plugin/marketplace.json         @lexijamesesq
 /.claude-plugin/plugin.json              @lexijamesesq
 
-# --- The estate RELEASE mechanism + machine-update scripts (+ their specs) ---
-/skills/release-dotty/scripts/           @lexijamesesq
-/skills/release-dotty/SKILL.md           @lexijamesesq
+# --- Machine-update scripts (+ their specs) ---
+# dotty's release mechanism used to live here too. It is now a workflow in
+# dotty itself (release-on-merge.yml), cut on merge with nobody in the loop.
 /skills/update-mbp/scripts/              @lexijamesesq
 /skills/update-mbp/SKILL.md              @lexijamesesq
 

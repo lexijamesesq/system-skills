@@ -1,6 +1,6 @@
 # system-skills
 
-Skills that maintain the estate itself: declared-state capture and apply, laptop sync, project scaffolding, and dotty's release step.
+Skills that maintain the estate itself: declared-state capture and apply, laptop sync, and project scaffolding.
 
 Published as the `system` marketplace — one plugin, `system@system`, serving the skills under `skills/`.
 
