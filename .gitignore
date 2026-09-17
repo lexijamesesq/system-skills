@@ -3,3 +3,5 @@
 # Operator PII ruleset for gitleaks is installed at a fixed path by the
 # private blueprint — no longer symlinked into this checkout, so there is
 # nothing under that name for this file to ignore.
+
+# margot go-live auto-path proof — safe to revert
