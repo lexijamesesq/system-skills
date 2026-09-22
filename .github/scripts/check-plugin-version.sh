@@ -32,7 +32,7 @@ import json, sys
 print(json.load(open(sys.argv[1] + '/.claude-plugin/plugin.json'))['version'])
 " "$PLUGIN_DIR")"
 
-# .pre-commit-config.yaml, .yamllint.yaml, .markdownlint.yaml and
+# .pre-commit-config.yaml, .yamllint.yaml, .markdownlint.yaml, ruff.toml and
 # everything under .github/ (CODEOWNERS, workflows, this script itself)
 # are repo-level infrastructure -- CI config, lint config, path-ownership
 # rules, release tooling, dependency-bot config --
@@ -51,6 +51,7 @@ if git diff --quiet "$LATEST_TAG" HEAD -- "$PLUGIN_DIR" \
 	":(exclude)${PLUGIN_DIR%/}/.pre-commit-config.yaml" \
 	":(exclude)${PLUGIN_DIR%/}/.yamllint.yaml" \
 	":(exclude)${PLUGIN_DIR%/}/.markdownlint.yaml" \
+	":(exclude)${PLUGIN_DIR%/}/ruff.toml" \
 	":(exclude)${PLUGIN_DIR%/}/renovate.json" \
 	":(exclude)${PLUGIN_DIR%/}/.github"; then
 	echo "PASS $PLUGIN_NAME: tree identical to $LATEST_TAG"
