@@ -71,10 +71,12 @@ jobs:
         run: claude plugin validate --strict .
 
   release-check:
-    needs: [floor]
+    # floor: always-run
+    # release-check refuses a plugin change without a version bump;
+    # a mechanical PR (a Renovate bump inside a plugin) can still need one.
     # PR-time, no writes; required by branch protection so content changes
     # without a version bump are blocked, not reported after the fact.
-    if: ${{ (github.event_name == 'pull_request') && needs.floor.outputs.mechanical != 'true' }}
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
