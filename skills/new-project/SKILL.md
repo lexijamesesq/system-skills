@@ -25,6 +25,7 @@ These templates define the current required structure. Read them at runtime to p
 Ask the user:
 
 > Is this a **Project** or a **Hub**?
+>
 > - **Project** = Active work with state tracking (Re-entry Cue, blockers, decisions; queue lives in Linear)
 > - **Hub** = Organizes related subprojects, no state of its own
 
@@ -47,6 +48,7 @@ Ask the user for:
 ## Step 3: Create Linear Project (Projects Only)
 
 Call `linear_createProject` with:
+
 - `name`: the project name from Step 2
 - `teamIds`: a single-element array containing the team UUID resolved from global CLAUDE.md > Configuration > `linear.team_lex_id`.
 - `description`: the short description from Step 2
@@ -65,6 +67,7 @@ Ask the user:
 > Will this project accumulate durable reference material across sessions — architectural explanations, research spikes, procedures, posture assessments? (See the "Knowledge Folder (Optional)" section in the project template for when to adopt.)
 
 If **yes:**
+
 - Create a `Knowledge/` directory
 - Scaffold the **orientation hierarchy** from the project template's "Orientation hierarchy" section (`templates.project`) — read the three skeletons there at runtime and create each, filling the blanks with the project's name, `project/{name-kebab}` tag, and `{today}`:
   - `overview.md` — at the **project root**: the 30,000ft page (what the project is, how work moves, an empty area map + the "what counts as an area" guide, house rules carrying the three-hop navigation contract and the `integration-modes.md` pointer).
@@ -82,6 +85,7 @@ Ask the user:
 > Does this project involve autonomous agent workflows or sustained multi-session development?
 
 If **yes**, gather:
+
 - **Objective** — What problem does this solve? (1-2 sentences, framed as a problem statement)
 - **Desired Outcomes** — 2-4 observable state changes from the user's perspective
 - **Health Metrics** — What must NOT degrade while pursuing outcomes?
@@ -100,7 +104,8 @@ If **no:** Leave the intent engineering sections as HTML comments in the CLAUDE.
 Based on the gathered answers, read the appropriate template and create:
 
 **For Projects:**
-```
+
+```text
 {parent}/{Project Name}/
   CLAUDE.md                    ← From project template, filled with gathered info + Linear project URL
   overview.md                  ← If Knowledge intake enabled — 30,000ft page + area map + house rules (project root)
@@ -110,6 +115,7 @@ Based on the gathered answers, read the appropriate template and create:
 ```
 
 Do NOT create:
+
 - `backlog.json` — task tracking is in Linear
 - `backlog-archive.json` — this exists only for migrated projects (pre-cutoff)
 - `progress.md` — session narrative is in Linear Project Updates
@@ -143,19 +149,22 @@ If you're researching {topic}-adjacent material from Wiki/, check `{parent}/{Pro
 ```
 
 Guidance:
+
 - Pick 4-8 `topic/*` tags that describe the project's domain. These drive Wiki-query discoverability — without them the stub is dead weight.
-- If Knowledge intake is NOT enabled (no Knowledge/ folder), replace the Knowledge line with a reference to wherever spec/reference material lives (e.g., `**Authoritative spec:** \`{path}/router-spec.md\``) and add a note: "No `Knowledge/` folder. Reference material at {paths}."
+- If Knowledge intake is NOT enabled (no Knowledge/ folder), replace the Knowledge line with a reference to wherever spec/reference material lives (e.g., `**Authoritative spec:** \`{path}/router-spec.md\``) and add a note: "No`Knowledge/` folder. Reference material at {paths}."
 - The stub is a pointer, not a mirror. Don't duplicate CLAUDE.md content. ~10 lines total.
 
 After creating the stub, update `Wiki/Optimized/index.md` — add a row to the **Project Pointers** table linking the new stub.
 
 **For Hubs:**
-```
+
+```text
 {parent}/{Hub Name}/
   CLAUDE.md              ← From hub template, filled with gathered info
 ```
 
 **CLAUDE.md requirements (per the canonical template):**
+
 - Frontmatter: `type/claude-project` or `type/claude-hub` tag, `project/{name-kebab}` tag, `status: active`, `description`, `updated`, `linear_project_id`, `linear_url`, `knowledge_intake`
 - Template reference: the `template` frontmatter key, per the template's Frontmatter contract
 - Re-entry Cue section (initialized as "No work in progress" or absent)
@@ -166,6 +175,7 @@ After creating the stub, update `Wiki/Optimized/index.md` — add a row to the *
 ## Step 7: Report
 
 Summarize what was created:
+
 - List all files and directories
 - Confirm frontmatter tags
 - Confirm the Linear project was created and show the URL
@@ -178,6 +188,7 @@ Summarize what was created:
 `/new-project` builds the orientation hierarchy into every NEW project. Existing projects are **not** migrated automatically. This checklist ships the *capability* to upgrade one; it is run per-project, under operator direction, as its own slice with its own review — **do not** run it as a side effect of anything else.
 
 Scope guards:
+
 - **The System project stays grandfathered.** Its flat-root + `Knowledge/` layout is deliberate — do not apply this to it.
 - Applying this to a real project (sorting its live Knowledge docs) is a judgment task per project, not a mechanical sweep. Run it when the operator asks, one project at a time.
 
@@ -192,30 +203,18 @@ Steps:
 
 ## Publishing Safety Setup (for projects with a GitHub repo)
 
-When the project has its own git repo that pushes to GitHub, set up publishing safety after creating the vault structure. Copy config from dotty as the reference. The repo lives outside the vault (operator rule: a git repo and an Obsidian folder are never the same directory) — under `~/Repos/{name}` for ordinary projects, `~/bin/{name}` for harness/system setup, or `~/Agents/{name}` for an agent's dev/deploy split.
+When the project has its own git repo that pushes to GitHub, create it after the vault structure, through the `new-repo` skill (below). The repo lives outside the vault (operator rule: a git repo and an Obsidian folder are never the same directory) — under `~/Repos/{name}` for ordinary projects, `~/bin/{name}` for harness/system setup, or `~/Agents/{name}` for an agent's dev/deploy split.
 
-**The CLAUDE.md pair:** add `build_home: ["{abs-path-to-repo}"]` to the vault project's frontmatter (a list — a project can have more than one repo). In the repo itself, author a CLAUDE.md from dotty's `repo-claude-template.md`, with `docs_home: "{abs-path-to-this-vault-project}"` pointing back. The repo file must be complete on its own — engines, CI runners, and cloud sessions see only the repo, never the vault.
+**The CLAUDE.md pair:** add `build_home: ["{abs-path-to-repo}"]` to the vault project's frontmatter (a list — a project can have more than one repo). In the repo itself, the seeded CLAUDE.md carries `docs_home: "{abs-path-to-this-vault-project}"` pointing back. The repo file must be complete on its own — engines, CI runners, and cloud sessions see only the repo, never the vault.
 
-**GitHub server-side (one-time):**
-- Enable push protection + secret scanning: `gh api repos/<owner>/<repo> --method PATCH --field 'security_and_analysis[secret_scanning][status]=enabled' --field 'security_and_analysis[secret_scanning_push_protection][status]=enabled'` (resolve `<owner>` from the repo's git remote)
-- Create ruleset: `gh api repos/<owner>/<repo>/rulesets --method POST --input -` with `{"name":"Protect <branch>","target":"branch","enforcement":"active","conditions":{"ref_name":{"include":["refs/heads/<branch>"],"exclude":[]}},"rules":[{"type":"non_fast_forward"},{"type":"deletion"}]}`
-- Set OAuth secret: `gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo <owner>/<repo>` (paste from 1Password)
-
-**Local config (copy from dotty, tune per repo):**
-- `.gitleaks.toml` — operator patterns + repo-specific allowlist (LICENSE for copyright name; remove employer rules for work-project repos)
-- `.pre-commit-config.yaml` — gitleaks (`language: system`), file-presence, check-yaml, check-json, end-of-file-fixer, trailing-whitespace
-- `README.md` + `LICENSE`
-
-**Activate:** `pre-commit install`
-
-**Commit** the config files via the PR workflow (branch → PR → merge). See global CLAUDE.md § GitHub for the workflow.
+**Creating the repo:** use the `new-repo` skill, which runs dotty's `new-repo.sh`. That's the estate's one front door: it creates and seeds the repo, declares its rulesets, opens its callers PR and sets its secrets. Never hand-create rulesets, CI files or secrets. The seeded repo already has a CLAUDE.md from dotty's `repo-claude-template.md`; set its `docs_home` in a follow-up PR.
 
 Not all projects have GitHub repos. Hub-only or vault-only projects skip this section.
 
 ## Stop Rules
 
 | Condition | Action |
-|-----------|--------|
+| ----------- | -------- |
 | User cancels at any step | Report what was gathered so far and stop. Do not create partial artifacts. |
 | Linear project creation fails | Report the error and stop. Do not create vault structure until Linear project exists. |
 | Parent location doesn't exist | Ask user to confirm creation or provide a different path. |
