@@ -1,6 +1,6 @@
 {
   "name": "system",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Skills that maintain the estate itself: declared-state capture and apply, laptop sync, and project scaffolding.",
   "author": {
     "name": "Lexi James",

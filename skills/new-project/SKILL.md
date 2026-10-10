@@ -207,7 +207,7 @@ When the project has its own git repo that pushes to GitHub, create it after the
 
 **The CLAUDE.md pair:** add `build_home: ["{abs-path-to-repo}"]` to the vault project's frontmatter (a list — a project can have more than one repo). In the repo itself, the seeded CLAUDE.md carries `docs_home: "{abs-path-to-this-vault-project}"` pointing back. The repo file must be complete on its own — engines, CI runners, and cloud sessions see only the repo, never the vault.
 
-**Creating the repo:** use the `new-repo` skill, which runs dotty's `new-repo.sh`. That's the estate's one front door: it creates and seeds the repo, declares its rulesets, opens its callers PR and sets its secrets. Never hand-create rulesets, CI files or secrets. The seeded repo already has a CLAUDE.md from dotty's `repo-claude-template.md`; set its `docs_home` in a follow-up PR.
+**Creating the repo:** use the `new-repo` skill for its reviewed native setup procedure and Dotty assets. It prepares source changes and direct settings operations under the authorized identities, verifies App access and enrollment, and preserves existing repository extensions. Follow that procedure for creation, updates and conforming repeats. Use Dotty's `repo-claude-template.md` for the repository working guide and set its `docs_home` to the vault project.
 
 Not all projects have GitHub repos. Hub-only or vault-only projects skip this section.
 
