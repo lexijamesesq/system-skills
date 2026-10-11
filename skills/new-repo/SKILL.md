@@ -64,7 +64,9 @@ Inspect the current native configuration and canonical assets together. Apply th
 complete baseline, supported caller contracts and declared native extensions as a
 small reviewable diff. Resolve real immutable release pins before using them;
 planned versions and placeholder digests are not installable artifacts. Retain
-post-merge alerts and the repository's real release duties.
+the repository's real release duties. Do not install self-instrument checks,
+file-specific approval holds or self-instrument post-merge alerts; Margot files
+receive the same review as every other file.
 
 For new enrollment, prepare the `.repos[owner/repo]` entry in Dotty's
 `rulesets/default-branch.json` as reviewed source and deliver it through the
