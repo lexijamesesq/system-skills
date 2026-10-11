@@ -94,17 +94,26 @@ the repository's real release duties. Do not install self-instrument checks,
 file-specific approval holds or self-instrument post-merge alerts; Margot files
 receive the same review as every other file.
 
-The README's **Native source assets** table is the asset list. Take each asset
-from the reviewed Dotty release, never from another consumer: an existing consumer
-can carry stale tool configs, or a working guide the retired provisioner left as
-an unfilled template. For a new repository, install the full applicable set. For
-an existing one, apply only the difference and keep its native extensions, as
-above. The table does not say:
+The README's **Native source assets** table says where each duty lives in Dotty.
+Not every row is a file for the target. Take what you install from the reviewed
+Dotty release, never from another consumer: an existing consumer can carry stale
+tool configs, or a working guide the retired provisioner left as an unfilled
+template.
 
-- `.pre-commit-hooks.yaml` and `default.json` are Dotty's own definitions, used by
-  reference: `.pre-commit-config.yaml` points its hooks at `lexijamesesq/dotty`,
-  and `renovate.json` extends `github>lexijamesesq/dotty`. Neither is copied.
-- The plugin release rows apply only to a repository that ships plugins.
+- **Installed into the target:** the template `.pre-commit-config.yaml`, the root
+  tool configs, `.gitleaks.toml`, the visibility's `.house-code.json`, the PR
+  template, `ci.yml`, `ollie-merge.yml` and `ollie-bounce.yml`, the `README.md`
+  (and public `LICENSE`) templates, and the working guide described below.
+- **Used in place, never copied:** `.pre-commit-hooks.yaml` (the target's hook
+  config points at `lexijamesesq/dotty`), `scripts/prepare-checkout.sh` (run from
+  `DOTTY_CHECKOUT`), `rulesets/*.json` (applied through the API and the
+  enrollment entry), `default.json` and `renovate.yml` (Dotty's central Renovate;
+  the target gets only a `renovate.json` that extends `github>lexijamesesq/dotty`),
+  and the plugin release files (they belong to repositories that ship plugins).
+
+For a new repository, install the full set. For an existing one, apply only the
+difference and keep its native extensions, as above.
+
 - Template values to resolve before the first commit: `{{NAME}}` in
   `.gitleaks.toml` and `README.md`, `{{DESCRIPTION}}` in `README.md`, and the
   `lexijamesesq/dotty` hook `rev` in `.pre-commit-config.yaml`. Renovate does not
@@ -120,7 +129,10 @@ Codex reads `AGENTS.md` and Claude reads `CLAUDE.md`:
   testing discipline). Follow it with this repository's own instructions (setup,
   build/test, CI, conventions). Leave out Dotty's suite paragraph.
 - `CLAUDE.md` carries the `repo-claude-template.md` frontmatter (`type/claude-repo`,
-  `description`, `docs_home`) and imports the rest with an `@AGENTS.md` line.
+  `description`, `docs_home`), a `# <repository name>` heading (markdownlint's
+  MD041 rejects a file whose first content line is the import), and an
+  `@AGENTS.md` line that imports the rest. In `AGENTS.md`, put the repository's
+  own section under `##` headings below the shared contract's single H1.
 
 For an existing repository, keep its current guide content and add only the
 missing shared contract and link.
@@ -234,11 +246,19 @@ not a mandatory setup step or replacement generator.
 - **The declaration PR waits on the owner.** It merges through Dotty's
   owner-controlled path, and the release that carries it must publish before the
   target's caller is exercised.
+- **Some native hooks reject legitimate project files.** Extend the copied
+  config narrowly for the real file, never by bypassing the hook. pnpm 12 writes
+  `pnpm-lock.yaml` as two YAML documents, which `check-yaml` rejects: exclude
+  `(^|/)pnpm-lock\.yaml$` from that hook only. Prompt fragments such as an eve
+  agent's `instructions.md` are not documents: exclude their exact paths from
+  markdownlint.
 - **The session scratchpad is not durable.** macOS removes files in `/tmp` that
   have not been touched for three days. Keep nothing there that must outlive the
   task; land work in a repository.
 
 The agent running setup owns resolving or reporting each failed step. Report its
 command, nonsecret error and exact missing prerequisite; route a shared Dotty
-source defect to the Dotty owner (`system-lead`). Do not work around a failed
+source defect to the Dotty owner (`system-lead`). A failure inside the review
+pipeline itself (Margot's classification or review steps) goes to the operator,
+who assigns whoever is driving that pipeline's work. Do not work around a failed
 shared step by hand or invent a credential route.
