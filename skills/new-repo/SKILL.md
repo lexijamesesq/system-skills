@@ -18,6 +18,20 @@ Follow `new-repo/README.md`'s **Ordered create or update procedure** from the
 reviewed working Dotty source. It gives the current bootstrap order, native
 commands, target-environment secret map and first-install Ollie boundary.
 
+## Confirm the loaded version first
+
+A session keeps the plugin version it started with, so an older session can load
+a retired procedure. Compare the version in this skill's base directory with the
+latest published `system` plugin before acting:
+
+```sh
+claude plugin marketplace update system
+claude plugin update system@system
+```
+
+If either reports a newer version, ask the operator to run `/reload-plugins`, then
+re-invoke this skill and confirm the base directory shows the new version.
+
 ## Establish identity and scope
 
 Read the intended owner/name, actual visibility, default branch, existing files
@@ -79,6 +93,44 @@ planned versions and placeholder digests are not installable artifacts. Retain
 the repository's real release duties. Do not install self-instrument checks,
 file-specific approval holds or self-instrument post-merge alerts; Margot files
 receive the same review as every other file.
+
+Copy every baseline file from the reviewed Dotty release, never from another
+consumer. Existing consumers can carry stale tool configs, or a working guide the
+retired provisioner left as an unfilled template; a neighbor is not a reference.
+The baseline is:
+
+- `new-repo/templates/common/`: `.github/workflows/ci.yml`, `.gitleaks.toml`,
+  `.pre-commit-config.yaml`, `README.md`
+- `new-repo/templates/<visibility>/.house-code.json`, plus `LICENSE` for a public
+  repository
+- the root tool configs every hook reads, whatever the repository's languages:
+  `.markdownlint.yaml`, `.yamllint.yaml`, `.prettierrc`, `.shellcheckrc`,
+  `biome.json`, `ruff.toml`
+- `.github/pull_request_template.md`, `.github/workflows/ollie-merge.yml` and
+  `.github/workflows/ollie-bounce.yml`
+- `renovate.json` extending `github>lexijamesesq/dotty` (`default.json` is that
+  preset, not a file to copy)
+
+Resolve every template value before the first commit:
+
+- `{{NAME}}` in `.gitleaks.toml` and `README.md`, and `{{DESCRIPTION}}` in
+  `README.md`.
+- The `lexijamesesq/dotty` hook `rev` in `.pre-commit-config.yaml`. The
+  template's self-pin is not advanced by Renovate; set it to the release tag
+  checked out in `DOTTY_CHECKOUT`.
+
+The working guide is two linked files until the estate settles on one. `AGENTS.md`
+holds this repository's working instructions (setup, build/test, CI,
+conventions) for Codex. `CLAUDE.md` carries the frontmatter from
+`repo-claude-template.md` (`type/claude-repo`, `description`, `docs_home`) and
+imports the instructions with an `@AGENTS.md` line, because Claude reads
+`CLAUDE.md`, not `AGENTS.md`. Do not copy Dotty's own `AGENTS.md`; it carries
+Dotty-specific suites.
+
+Seeding the default branch activates `ollie-merge.yml` the moment the push lands.
+Hold it immediately after the seed push, with the README's disable and readback,
+even though the README lists the hold at a later step. A receiver left active
+can merge before protections exist.
 
 For new enrollment, prepare the `.repos[owner/repo]` entry in Dotty's
 `rulesets/default-branch.json` as reviewed source and deliver it through the
@@ -164,6 +216,28 @@ any remaining prerequisite; a suggestion to perform missing proof later is not
 completion. If README creation or refresh is requested, retain the existing
 `publish-skills` `github-readme` aid and canonical README style; it is optional,
 not a mandatory setup step or replacement generator.
+
+## What to expect
+
+- **`~/bin/dotty` is usually bare or stale.** Expect to clone the reviewed release
+  to a new destination, as above.
+- **App coverage can't be listed with the owner's login.** `gh api
+  user/installations` answers 403 to an ordinary `gh` token; it needs a GitHub
+  App user token. A 403 is not absence. The Claude App is verified by reaching
+  the repository with its own token. Margot's and Ollie's coverage is proven by
+  the real actor at their first review and merge; if either never acts, the
+  owner adds the repository in that App's installation settings.
+- **Cloning the new empty repository warns that it is empty.** That is normal;
+  create the default branch locally before the seed commit.
+- **The owner must be present for secret delivery.** The two App-key `op read`
+  calls each raise a Touch ID prompt. The Jev key, the Anthropic token and the
+  operator rules are read without one.
+- **The declaration PR waits on the owner.** It merges through Dotty's
+  owner-controlled path, and the release that carries it must publish before the
+  target's caller is exercised.
+- **The session scratchpad is not durable.** macOS removes files in `/tmp` that
+  have not been touched for three days. Keep nothing there that must outlive the
+  task; land work in a repository.
 
 The agent running setup owns resolving or reporting each failed step. Report its
 command, nonsecret error and exact missing prerequisite; route a shared Dotty
