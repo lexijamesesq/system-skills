@@ -14,6 +14,9 @@ Use the same procedure for creation and update. Read the current repository and
 apply only its necessary changes; a conforming repeat produces no file diff,
 settings write, PR or release. Use Dotty's reviewed canonical native assets rather
 than a provisioner, generated configuration layer or copied policy values here.
+Follow `new-repo/README.md`'s **Ordered create or update procedure** from the
+reviewed working Dotty source. It gives the current bootstrap order, native
+commands, target-environment secret map and first-install Ollie boundary.
 
 ## Establish identity and scope
 
@@ -36,7 +39,8 @@ Use a durable working checkout of reviewed Dotty source or a published release. 
 `DOTTY_CHECKOUT` to that checkout and `REPOSITORY_CHECKOUT` to the target clone or
 worktree. If the available Dotty path is bare, outdated or missing the assets,
 use standard `gh repo clone` and `git checkout` through the intended author
-identity to obtain a working checkout of the reviewed release; preserve existing
+identity to obtain the reviewed release at a new nonexistent destination, then
+set `DOTTY_CHECKOUT` to that working checkout; preserve existing
 checkouts and dirty work. Record its exact revision and verify every referenced
 asset exists there before making changes. Read the operation and extension
 instructions in `new-repo/README.md`. Use the same baseline and caller for public
@@ -79,7 +83,9 @@ receive the same review as every other file.
 For new enrollment, prepare the `.repos[owner/repo]` entry in Dotty's
 `rulesets/default-branch.json` as reviewed source and deliver it through the
 producer release before exercising the installed caller; trusted routing rejects
-an unenrolled repository.
+an unenrolled repository. The current route reads that released enrollment
+directly; a new repository does not require a separate private-instance or prompt
+release merely to add its entry.
 
 After entering the clone or worktree, run:
 
@@ -116,9 +122,13 @@ stop that mutation and report the exact prerequisite; do not retry through anoth
 identity silently.
 
 Keep environment creation/settings, permitted branch/tag policies, App coverage
-and credential delivery separate. Use existing approved custody and supported
-secret delivery without reading or displaying values. This skill does not grant
-access to `~/.config/estate/` or authorize a replacement credential store.
+and credential delivery separate. Use the README's five-secret map and existing
+authorized custody, delivering nonempty values only through native `gh secret
+set` stdin. Historical human approval of App-key reads is not blanket permission
+for a new value read; honor applicable owner authorization and ask only for the
+missing authority. Never display values or put them in arguments, files or
+evidence. This skill does not grant access to `~/.config/estate/` or authorize a
+replacement credential store.
 
 ## Deliver and prove the result
 
@@ -130,20 +140,32 @@ restore intended protections and pre-existing intentional disabled states before
 closing maintenance. Do not leave an old writer applying obsolete policy.
 
 Publish the necessary source through normal review and the authorized merge path.
+Ollie cannot merge the PR that first installs its receiver on the default branch.
+The owner handles that first-install bootstrap merge when required; the agent
+does not bypass it. After installation, an older PR branch missing the approval
+relay needs its normal reviewed branch update or a specifically authorized
+dispatch through the existing receiver, as documented in the README.
 For a newly installed or changed pipeline, exercise an open ready PR through the
 installed default-branch caller; record live
 base/head, check IDs, numeric reporters and intended reviewer/merger behavior.
-Prove a surviving failing check blocks, then that corrected checks and intended
-review permit normal merge, including required post-merge delivery. A migration
-merge, stale rerun or source-only fixture is not installed proof.
+Verify the surviving protection and intended review through ordinary work and
+available actual evidence, including normal merge and required post-merge
+delivery. A migration merge, stale rerun or source-only fixture is not installed
+proof.
 
 Verify the requested create or update operation, then repeat its comparison on
 the conforming consumer: no file diff, new PR, release or redundant settings write.
 For an already conforming update, read existing installed evidence instead of
-creating work merely to repeat proof. The procedure's initial rollout acceptance
-requires both a created and an existing consumer; an ordinary update does not
-authorize creating another repository. Report what was actually exercised and
+creating work merely to repeat proof. The created/existing consumer and both-agent
+pilot acceptance belongs to the completed initial rollout, not each later setup;
+reuse that evidence. An ordinary update does not authorize creating another
+repository or repeating the pilot matrix. Report what was actually exercised and
 any remaining prerequisite; a suggestion to perform missing proof later is not
 completion. If README creation or refresh is requested, retain the existing
 `publish-skills` `github-readme` aid and canonical README style; it is optional,
 not a mandatory setup step or replacement generator.
+
+The agent running setup owns resolving or reporting each failed step. Report its
+command, nonsecret error and exact missing prerequisite; route a shared Dotty
+source defect to the Dotty owner (`system-lead`). Do not work around a failed
+shared step by hand or invent a credential route.
