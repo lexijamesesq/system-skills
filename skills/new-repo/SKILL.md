@@ -94,43 +94,42 @@ the repository's real release duties. Do not install self-instrument checks,
 file-specific approval holds or self-instrument post-merge alerts; Margot files
 receive the same review as every other file.
 
-Copy every baseline file from the reviewed Dotty release, never from another
-consumer. Existing consumers can carry stale tool configs, or a working guide the
-retired provisioner left as an unfilled template; a neighbor is not a reference.
-The baseline is:
+The README's **Native source assets** table is the asset list. Take each asset
+from the reviewed Dotty release, never from another consumer: an existing consumer
+can carry stale tool configs, or a working guide the retired provisioner left as
+an unfilled template. For a new repository, install the full applicable set. For
+an existing one, apply only the difference and keep its native extensions, as
+above. The table does not say:
 
-- `new-repo/templates/common/`: `.github/workflows/ci.yml`, `.gitleaks.toml`,
-  `.pre-commit-config.yaml`, `README.md`
-- `new-repo/templates/<visibility>/.house-code.json`, plus `LICENSE` for a public
-  repository
-- the root tool configs every hook reads, whatever the repository's languages:
-  `.markdownlint.yaml`, `.yamllint.yaml`, `.prettierrc`, `.shellcheckrc`,
-  `biome.json`, `ruff.toml`
-- `.github/pull_request_template.md`, `.github/workflows/ollie-merge.yml` and
-  `.github/workflows/ollie-bounce.yml`
-- `renovate.json` extending `github>lexijamesesq/dotty` (`default.json` is that
-  preset, not a file to copy)
+- `.pre-commit-hooks.yaml` and `default.json` are Dotty's own definitions, used by
+  reference: `.pre-commit-config.yaml` points its hooks at `lexijamesesq/dotty`,
+  and `renovate.json` extends `github>lexijamesesq/dotty`. Neither is copied.
+- The plugin release rows apply only to a repository that ships plugins.
+- Template values to resolve before the first commit: `{{NAME}}` in
+  `.gitleaks.toml` and `README.md`, `{{DESCRIPTION}}` in `README.md`, and the
+  `lexijamesesq/dotty` hook `rev` in `.pre-commit-config.yaml`. Renovate does not
+  advance that self-pin; set it to the release tag checked out in
+  `DOTTY_CHECKOUT`.
 
-Resolve every template value before the first commit:
+The working guide is two linked files until the estate settles on one, because
+Codex reads `AGENTS.md` and Claude reads `CLAUDE.md`:
 
-- `{{NAME}}` in `.gitleaks.toml` and `README.md`, and `{{DESCRIPTION}}` in
-  `README.md`.
-- The `lexijamesesq/dotty` hook `rev` in `.pre-commit-config.yaml`. The
-  template's self-pin is not advanced by Renovate; set it to the release tag
-  checked out in `DOTTY_CHECKOUT`.
+- `AGENTS.md` carries Dotty's shared agent contract: every section of Dotty's
+  `AGENTS.md` before its paragraph on Dotty's own suites (checkout readiness, the
+  Codex `estate-codex` identity boundary, no hook bypass, PR body validation,
+  testing discipline). Follow it with this repository's own instructions (setup,
+  build/test, CI, conventions). Leave out Dotty's suite paragraph.
+- `CLAUDE.md` carries the `repo-claude-template.md` frontmatter (`type/claude-repo`,
+  `description`, `docs_home`) and imports the rest with an `@AGENTS.md` line.
 
-The working guide is two linked files until the estate settles on one. `AGENTS.md`
-holds this repository's working instructions (setup, build/test, CI,
-conventions) for Codex. `CLAUDE.md` carries the frontmatter from
-`repo-claude-template.md` (`type/claude-repo`, `description`, `docs_home`) and
-imports the instructions with an `@AGENTS.md` line, because Claude reads
-`CLAUDE.md`, not `AGENTS.md`. Do not copy Dotty's own `AGENTS.md`; it carries
-Dotty-specific suites.
+For an existing repository, keep its current guide content and add only the
+missing shared contract and link.
 
-Seeding the default branch activates `ollie-merge.yml` the moment the push lands.
-Hold it immediately after the seed push, with the README's disable and readback,
-even though the README lists the hold at a later step. A receiver left active
-can merge before protections exist.
+On first installation, seeding the default branch activates `ollie-merge.yml` the
+moment the push lands. Hold it immediately after that push, with the README's
+disable and readback, though the README lists the hold at a later step; a receiver
+left active can merge before protections exist. This applies only to first
+installation. An existing repository keeps its active merger, as the README says.
 
 For new enrollment, prepare the `.repos[owner/repo]` entry in Dotty's
 `rulesets/default-branch.json` as reviewed source and deliver it through the
