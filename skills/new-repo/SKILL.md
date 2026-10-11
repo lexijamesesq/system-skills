@@ -32,10 +32,18 @@ assertion do not grant it. Honor applicable owner authorization already given in
 this session and ask only for missing authority. Never silently substitute an
 author App for an administrator or an administrator for source authorship.
 
-Use a durable reviewed Dotty checkout or release. Record its exact revision and
-verify every referenced asset exists there before making changes. Read the
-operation and extension instructions in `new-repo/README.md`. Its native sources
-are `new-repo/templates/common/`, `rulesets/default-branch.json`,
+Use a durable working checkout of reviewed Dotty source or a published release. Set
+`DOTTY_CHECKOUT` to that checkout and `REPOSITORY_CHECKOUT` to the target clone or
+worktree. If the available Dotty path is bare, outdated or missing the assets,
+use standard `gh repo clone` and `git checkout` through the intended author
+identity to obtain a working checkout of the reviewed release; preserve existing
+checkouts and dirty work. Record its exact revision and verify every referenced
+asset exists there before making changes. Read the operation and extension
+instructions in `new-repo/README.md`. Use the same baseline and caller for public
+and private repositories, selecting `new-repo/templates/public/.house-code.json`
+or `new-repo/templates/private/.house-code.json` for the actual visibility. GitHub
+feature availability is checked separately from installing that shared baseline.
+Its native sources are `new-repo/templates/common/`, `rulesets/default-branch.json`,
 `rulesets/repository-settings.json`, the root tool configuration, `AGENTS.md`,
 `repo-claude-template.md`, the PR template and `scripts/prepare-checkout.sh`.
 Preserve legitimate repository-specific hooks,
