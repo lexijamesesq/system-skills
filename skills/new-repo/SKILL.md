@@ -252,6 +252,11 @@ not a mandatory setup step or replacement generator.
   `(^|/)pnpm-lock\.yaml$` from that hook only. Prompt fragments such as an eve
   agent's `instructions.md` are not documents: exclude their exact paths from
   markdownlint.
+- **A ruleset read back after creation won't equal the request body.** GitHub
+  adds `allowed_merge_methods` to `pull_request` and drops the default
+  `update_allows_fetch_and_merge: false` from `update`. Compare the owned fields
+  against the declaration, or compare with an enrolled repository's live
+  rulesets, instead of diffing the raw request.
 - **The session scratchpad is not durable.** macOS removes files in `/tmp` that
   have not been touched for three days. Keep nothing there that must outlive the
   task; land work in a repository.
