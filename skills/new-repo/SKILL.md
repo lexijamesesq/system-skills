@@ -63,7 +63,7 @@ or `new-repo/templates/private/.house-code.json` for the actual visibility. GitH
 feature availability is checked separately from installing that shared baseline.
 Its native sources are `new-repo/templates/common/`, `rulesets/default-branch.json`,
 `rulesets/repository-settings.json`, the root tool configuration, `AGENTS.md`,
-`repo-claude-template.md`, the PR template and `scripts/prepare-checkout.sh`.
+`repo-claude-template.md` and the PR template.
 Preserve legitimate repository-specific hooks,
 checks, release jobs and other native extensions; resolve conflicts explicitly
 instead of replacing whole files or creating a merge/inheritance engine.
@@ -105,8 +105,7 @@ template.
   template, `ci.yml`, `ollie-merge.yml` and `ollie-bounce.yml`, the `README.md`
   (and public `LICENSE`) templates, and the working guide described below.
 - **Used in place, never copied:** `.pre-commit-hooks.yaml` (the target's hook
-  config points at `lexijamesesq/dotty`), `scripts/prepare-checkout.sh` (run from
-  `DOTTY_CHECKOUT`), `rulesets/*.json` (applied through the API and the
+  config points at `lexijamesesq/dotty`), `rulesets/*.json` (applied through the API and the
   enrollment entry), `default.json` and `renovate.yml` (Dotty's central Renovate;
   the target gets only a `renovate.json` that extends `github>lexijamesesq/dotty`),
   and the plugin release files (they belong to repositories that ship plugins).
@@ -124,7 +123,7 @@ The working guide is two linked files until the estate settles on one, because
 Codex reads `AGENTS.md` and Claude reads `CLAUDE.md`:
 
 - `AGENTS.md` carries Dotty's shared agent contract: every section of Dotty's
-  `AGENTS.md` before its paragraph on Dotty's own suites (checkout readiness, the
+  `AGENTS.md` before its paragraph on Dotty's own suites (native hook setup, the
   Codex `estate-codex` identity boundary, no hook bypass, PR body validation,
   testing discipline). Follow it with this repository's own instructions (setup,
   build/test, CI, conventions). Leave out Dotty's suite paragraph.
@@ -150,17 +149,22 @@ an unenrolled repository. The current route reads that released enrollment
 directly; a new repository does not require a separate private-instance or prompt
 release merely to add its entry.
 
-After entering the clone or worktree, run:
+A new agent clone gets its native hook entrypoints from the existing estate Git
+template. An existing checkout without them installs them once from its root, as
+Dotty's shared `AGENTS.md` contract gives:
 
 ```sh
-bash "$DOTTY_CHECKOUT/scripts/prepare-checkout.sh" "$REPOSITORY_CHECKOUT"
+pre-commit validate-config .pre-commit-config.yaml
+pre-commit install --hook-type pre-commit --hook-type pre-push \
+  --hook-type commit-msg --hook-type prepare-commit-msg
 ```
 
-Resolve its missing tools or existing hook-owner conflicts through the supported
-setup path. Check the project's declared runtime requirements as well as tool
-availability. Readiness initializes native hooks; it does not run a full product
-suite. Run applicable local checks for the actual diff and preserve native commit
-and push hooks. Stage and review only the intended changes.
+Preserve a custom `core.hooksPath` or existing hook owner rather than overwriting
+it. Host provisioning supplies system binaries such as Vale; a missing one is a
+provisioning gap to report, not something to install here. Check the project's
+declared runtime requirements as well. Run applicable local checks for the actual
+diff and preserve native commit and push hooks. Stage and review only the
+intended changes.
 
 ## Prepare and apply settings deliberately
 
