@@ -270,7 +270,9 @@ emit blueprint_declared_files
 # dotty-private blueprint slice installs -- so a machine missing
 # one is a visible drift, not a silent gap discovered only when a skill
 # fails to find its rosters/vocab/config file. New slices of this class
-# (single declared file -> one fixed path) just need one more line here.
+# (single declared file -> one fixed path) need one more line here AND the
+# same name in diff-state.sh's "Blueprint-declared fixed-path files" loop,
+# which reads this section by name.
 for entry in \
 	"rosters|$HOME/.config/estate/tag-taxonomy-rosters.md" \
 	"qa_private_vocab|$HOME/.config/estate/qa-private-vocab.md" \
