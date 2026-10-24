@@ -16,7 +16,7 @@ settings write, PR or release. Use Dotty's reviewed canonical native assets rath
 than a provisioner, generated configuration layer or copied policy values here.
 Follow `new-repo/README.md`'s **Ordered create or update procedure** from the
 reviewed working Dotty source. It gives the current bootstrap order, native
-commands, target-environment secret map and first-install Ollie boundary.
+commands and target-environment secret map.
 
 ## Confirm the loaded version first
 
@@ -102,8 +102,10 @@ template.
 
 - **Installed into the target:** the template `.pre-commit-config.yaml`, the root
   tool configs, `.gitleaks.toml`, the visibility's `.house-code.json`, the PR
-  template, `ci.yml`, `ollie-merge.yml` and `ollie-bounce.yml`, the `README.md`
-  (and public `LICENSE`) templates, and the working guide described below.
+  template, `ci.yml`, the `README.md` (and public `LICENSE`) templates, and the
+  working guide described below. Ollie merges from eve-deploy's `agents/ollie`,
+  outside Actions: install no `ollie-merge.yml` or `ollie-bounce.yml`, and remove
+  either from an existing repository.
 - **Used in place, never copied:** `.pre-commit-hooks.yaml` (the target's hook
   config points at `lexijamesesq/dotty`), `rulesets/*.json` (applied through the API and the
   enrollment entry), `default.json` and `renovate.yml` (Dotty's central Renovate;
@@ -136,18 +138,25 @@ Codex reads `AGENTS.md` and Claude reads `CLAUDE.md`:
 For an existing repository, keep its current guide content and add only the
 missing shared contract and link.
 
-On first installation, seeding the default branch activates `ollie-merge.yml` the
-moment the push lands. Hold it immediately after that push, with the README's
-disable and readback, though the README lists the hold at a later step; a receiver
-left active can merge before protections exist. This applies only to first
-installation. An existing repository keeps its active merger, as the README says.
-
 For new enrollment, prepare the `.repos[owner/repo]` entry in Dotty's
 `rulesets/default-branch.json` as reviewed source and deliver it through the
 producer release before exercising the installed caller; trusted routing rejects
 an unenrolled repository. The current route reads that released enrollment
 directly; a new repository does not require a separate private-instance or prompt
 release merely to add its entry.
+
+Ollie lands a repository's pull requests once the repository is in its watched
+list. After the repository's protections are verified, add it to `REPOSITORIES`
+in eve-deploy's `agents/ollie/agent/lib/watched.ts` through a reviewed PR. Its
+drift test reads Dotty's `.repos` on `main`, so from the enrollment's merge until
+that PR lands, every eve-deploy push that touches Ollie fails it: keep the gap
+short. Ollie mints one token for every watched repository at once, so its App's
+installation must already cover the new repository: one it can't reach fails every
+mint. The list takes effect when Felix deploys Ollie. The operator then adds the
+repository's review webhook, so Ollie sees her reviews: the `/github-review` path
+on Ollie's `eve-ollie` tunnel hostname (calcifer-config's README names the
+routes), content type JSON, the `review secret` from `GitHub webhook - Ollie`, and
+the Pull request reviews event only.
 
 A new agent clone gets its native hook entrypoints from the existing estate Git
 template. An existing checkout without them installs them once from its root, as
@@ -189,7 +198,8 @@ stop that mutation and report the exact prerequisite; do not retry through anoth
 identity silently.
 
 Keep environment creation/settings, permitted branch/tag policies, App coverage
-and credential delivery separate. Use the README's five-secret map and existing
+and credential delivery separate. Use the README's secret map, without
+`OLLIE_APP_KEY`, which no repository needs since Ollie left Actions, and existing
 authorized custody, delivering nonempty values only through native `gh secret
 set` stdin. Historical human approval of App-key reads is not blanket permission
 for a new value read; honor applicable owner authorization and ask only for the
@@ -207,11 +217,8 @@ restore intended protections and pre-existing intentional disabled states before
 closing maintenance. Do not leave an old writer applying obsolete policy.
 
 Publish the necessary source through normal review and the authorized merge path.
-Ollie cannot merge the PR that first installs its receiver on the default branch.
-The owner handles that first-install bootstrap merge when required; the agent
-does not bypass it. After installation, an older PR branch missing the approval
-relay needs its normal reviewed branch update or a specifically authorized
-dispatch through the existing receiver, as documented in the README.
+Until the repository is in Ollie's deployed watched list, the owner merges any
+setup PR that must land first; the agent does not bypass that.
 For a newly installed or changed pipeline, exercise an open ready PR through the
 installed default-branch caller; record live
 base/head, check IDs, numeric reporters and intended reviewer/merger behavior.
@@ -239,13 +246,14 @@ not a mandatory setup step or replacement generator.
 - **App coverage can't be listed with the owner's login.** `gh api
   user/installations` answers 403 to an ordinary `gh` token; it needs a GitHub
   App user token. A 403 is not absence. The Claude App is verified by reaching
-  the repository with its own token. Margot's and Ollie's coverage is proven by
-  the real actor at their first review and merge; if either never acts, the
-  owner adds the repository in that App's installation settings.
+  the repository with its own token. Margot's coverage is proven by her first
+  review; if she never acts, the owner adds the repository in her App's
+  installation settings. Ollie's App must cover the repository before it joins
+  the watched list, as above.
 - **Cloning the new empty repository warns that it is empty.** That is normal;
   create the default branch locally before the seed commit.
-- **The owner must be present for secret delivery.** The two App-key `op read`
-  calls each raise a Touch ID prompt. The Jev key, the Anthropic token and the
+- **The owner must be present for secret delivery.** The App-key `op read` call
+  raises a Touch ID prompt. The Jev key, the Anthropic token and the
   operator rules are read without one.
 - **The declaration PR waits on the owner.** It merges through Dotty's
   owner-controlled path, and the release that carries it must publish before the
