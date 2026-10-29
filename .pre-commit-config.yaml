@@ -5,7 +5,7 @@ default_stages: [pre-commit]
 
 repos:
   - repo: https://github.com/lexijamesesq/dotty
-    rev: v2026.10.27
+    rev: v2026.10.29
     hooks:
       - id: release-version
         args: [plugin, ., system]
@@ -80,7 +80,7 @@ repos:
     rev: v2.6.3
     hooks:
       - id: biome-check
-        additional_dependencies: ["@biomejs/biome@2.6.3"]
+        additional_dependencies: ["@biomejs/biome@2.6.4"]
         exclude: '\.(jsonc?|vue|svelte|astro)$'
         stages: [pre-commit]
 
