@@ -35,7 +35,7 @@ If Hub, skip Steps 3, 4, and 5 (those are project-only).
 
 Ask the user for:
 
-1. **Name** — Used for the folder name and `project/` tag. Folder uses Mac-style naming (spaces, capitalization). Tag uses kebab-case.
+1. **Name** — Used for the folder name and the `{name-kebab}` slug (Linear project, paths). Folder uses Mac-style naming (spaces, capitalization); the slug is kebab-case.
 2. **Parent location** — Where in the vault hierarchy? Common locations:
    - `{workspace_root}/Personal/` (personal research)
    - `{workspace_root}/Professional/` (work projects)
@@ -69,8 +69,8 @@ Ask the user:
 If **yes:**
 
 - Create a `Knowledge/` directory
-- Scaffold the **orientation hierarchy** from the project template's "Orientation hierarchy" section (`templates.project`) — read the overview skeleton there at runtime and create it, filling the blanks with the project's name, `project/{name-kebab}` tag, and `{today}`:
-  - `overview.md` — at the **project root**: the 30,000ft page (what the project is, how work moves, an empty area map + the "what counts as an area" guide, house rules carrying the three-hop navigation contract and the `integration-modes.md` pointer).
+- Scaffold the **orientation hierarchy** from the project template's "Orientation hierarchy" section (`templates.project`) — read the overview skeleton there at runtime and create it, filling the blanks with the project's name and `{today}`:
+  - `overview.md` — at the **project root**: the 30,000ft page (what the project is, how work moves, an empty area map + the "what counts as an area" guide, house rules carrying the three-hop navigation contract).
   - `Knowledge/Methods/`, `Knowledge/Reference/`, `Knowledge/Research/`, `Knowledge/Decisions/`, `Knowledge/Records/` — the five base type folders, created empty (a `.gitkeep` is not needed; Obsidian shows empty folders). There is no index file: every `Knowledge/` file carries a frontmatter `description`, and that is the inventory (contract: the wiki repo's `spec/knowledge-files.md`).
   - Area docs are **not** scaffolded — sessions duplicate the one global blank (path configured in global CLAUDE.md > Configuration > `templates.area`) to `area-<slug>.md` at the project root as domains emerge.
 - Do **not** fabricate areas. A new project does not know its areas yet — the area map starts empty; areas are added when a domain has accumulated its own state.
@@ -121,41 +121,6 @@ Do NOT create:
 - `progress.md` — session narrative is in Linear Project Updates
 - `progress-archive.md` — this exists only for migrated projects (pre-cutoff)
 
-**Also create a Wiki pointer stub for every Project** (see [[target-architecture-v2]] > Wiki > Project Pointer Stubs for the full convention):
-
-Location: `Wiki/Optimized/project-{name-kebab}.md`
-
-Shape:
-
-```markdown
----
-tags:
-  - type/project-pointer
-  - project/{name-kebab}
-  - topic/{4-8 topic tags describing the project's scope}
-updated: {today}
-status: active
----
-# Project: {Name}
-
-{One-sentence description of what this project covers.}
-
-**Project root:** `{parent}/{Project Name}/`
-**Linear:** {Linear project URL}
-**Knowledge:** `{parent}/{Project Name}/Knowledge/` — authoritative for {domain}
-**CLAUDE.md:** `{parent}/{Project Name}/CLAUDE.md`
-
-If you're researching {topic}-adjacent material from Wiki/, check `{parent}/{Project Name}/Knowledge/` first — this stub is a pointer, not a mirror.
-```
-
-Guidance:
-
-- Pick 4-8 `topic/*` tags that describe the project's domain. These drive Wiki-query discoverability — without them the stub is dead weight.
-- If Knowledge intake is NOT enabled (no Knowledge/ folder), replace the Knowledge line with a reference to wherever spec/reference material lives (e.g., `**Authoritative spec:** \`{path}/router-spec.md\``) and add a note: "No`Knowledge/` folder. Reference material at {paths}."
-- The stub is a pointer, not a mirror. Don't duplicate CLAUDE.md content. ~10 lines total.
-
-After creating the stub, update `Wiki/Optimized/index.md` — add a row to the **Project Pointers** table linking the new stub.
-
 **For Hubs:**
 
 ```text
@@ -165,7 +130,7 @@ After creating the stub, update `Wiki/Optimized/index.md` — add a row to the *
 
 **CLAUDE.md requirements (per the canonical template):**
 
-- Frontmatter: `type/claude-project` or `type/claude-hub` tag, `project/{name-kebab}` tag, `status: active`, `description`, `updated`, `linear_project_id`, `linear_url`, `knowledge_intake`
+- Frontmatter: `status: active`, `description`, `updated`, `linear_project_id`, `linear_url`, `knowledge_intake` (no `tags`: the tag taxonomy was retired 2026-11-03; project discovery is by path)
 - Template reference: the `template` frontmatter key, per the template's Frontmatter contract
 - Re-entry Cue section (initialized as "No work in progress" or absent)
 - Key Files table (only non-discoverable files)
@@ -177,10 +142,8 @@ After creating the stub, update `Wiki/Optimized/index.md` — add a row to the *
 Summarize what was created:
 
 - List all files and directories
-- Confirm frontmatter tags
 - Confirm the Linear project was created and show the URL
 - Note whether Knowledge intake is enabled (`knowledge_intake: true` in frontmatter). If so, confirm the orientation hierarchy scaffolded: `overview.md` at the project root (three-hop navigation contract + area guide) and the five `Knowledge/` type folders (`Methods/`, `Reference/`, `Research/`, `Decisions/`, `Records/`); no index file. Confirm the area map starts empty — no fabricated areas.
-- Note the Wiki pointer stub (`Wiki/Optimized/project-{name-kebab}.md`) and the topic tags applied. Flag if topic tags are weak — strong tags matter because they drive Wiki-query discoverability.
 - Suggest: "Run `/session-start {Project Name}` when you're ready to begin working."
 
 ## Upgrade an existing project to the orientation hierarchy
@@ -194,12 +157,12 @@ Scope guards:
 
 Steps:
 
-1. **Write `overview.md` at the project root** from the template skeleton — the durable "what this project is," how work moves, an empty (or illustrative) area map, and the house rules (three-hop navigation contract + `integration-modes.md` pointer).
+1. **Write `overview.md` at the project root** from the template skeleton — the durable "what this project is," how work moves, an empty (or illustrative) area map, and the house rules (three-hop navigation contract).
 2. **Name the areas.** Identify the coherent slices that already have their own state — a session can work each without loading the others. Do not force a slice that isn't there yet.
 3. **Sort current-state material into `area-<slug>.md` at the project root.** Current-state material folds into the area doc for its slice; frozen-reference and append-only records keep their own class (they are not areas) and stay in `Knowledge/`. Duplicate the global blank (`templates.area`) per area.
-4. **Stamp integration modes.** Area docs and the overview carry `integration: current-truth`; a `## State` section only where it is directional — where the area is headed, what is durably true (task status and logs stay in Linear). Append-only records stay append-only.
+4. **Keep orientation files current-truth.** Area docs and the overview are rewritten in place, never annotated (their `description` ends "Current truth, mutated in place."); a `## State` section only where it is directional — where the area is headed, what is durably true (task status and logs stay in Linear). Append-only records stay append-only.
 5. **Place each `Knowledge/` file in its type folder** (`Methods/`, `Reference/`, `Research/`, `Decisions/`, `Records/`; a project may add more) with the Obsidian CLI (`obsidian move`, which updates wikilinks), and make sure each carries `description`, `update`, `related` and `updated` in frontmatter. Root orientation files are mapped by the overview's area map; there is no index file.
-6. **Verify:** three hops resolve (overview → each area → its artifacts), every `Knowledge/` file reachable from the folder it sits in (a `description` that says what it is; the describe tool lists the folder), `integration: current-truth` on area docs, every `Knowledge/` file in a type folder with the four frontmatter fields. Run `/lint-knowledge` on the `Knowledge/` scope only — root orientation files are project scaffolding, checked against the template's § Orientation hierarchy, never Wiki lint.
+6. **Verify:** three hops resolve (overview → each area → its artifacts), every `Knowledge/` file reachable from the folder it sits in (a `description` that says what it is; the describe tool lists the folder), every `Knowledge/` file in a type folder with the four frontmatter fields. Run the contract lint (the wiki plugin's `knowledge-description` skill) on the `Knowledge/` scope only — root orientation files are project scaffolding, checked against the template's § Orientation hierarchy, not the contract.
 
 ## Publishing Safety Setup (for projects with a GitHub repo)
 
