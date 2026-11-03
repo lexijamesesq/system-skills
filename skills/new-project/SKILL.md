@@ -69,14 +69,14 @@ Ask the user:
 If **yes:**
 
 - Create a `Knowledge/` directory
-- Scaffold the **orientation hierarchy** from the project template's "Orientation hierarchy" section (`templates.project`) — read the three skeletons there at runtime and create each, filling the blanks with the project's name, `project/{name-kebab}` tag, and `{today}`:
+- Scaffold the **orientation hierarchy** from the project template's "Orientation hierarchy" section (`templates.project`) — read the overview skeleton there at runtime and create it, filling the blanks with the project's name, `project/{name-kebab}` tag, and `{today}`:
   - `overview.md` — at the **project root**: the 30,000ft page (what the project is, how work moves, an empty area map + the "what counts as an area" guide, house rules carrying the three-hop navigation contract and the `integration-modes.md` pointer).
-  - `Knowledge/index.md` — the knowledge inventory: entry-point pointer to the root `[[overview]]`, then the three document classes (current truth / frozen reference / append-only) inventorying `Knowledge/` contents — methodology, records, reference. Root orientation files are mapped by the overview's area map, not this inventory.
+  - `Knowledge/Methods/`, `Knowledge/Reference/`, `Knowledge/Research/`, `Knowledge/Decisions/`, `Knowledge/Records/` — the five base type folders, created empty (a `.gitkeep` is not needed; Obsidian shows empty folders). There is no index file: every `Knowledge/` file carries a frontmatter `description`, and that is the inventory (contract: the wiki repo's `spec/knowledge-files.md`).
   - Area docs are **not** scaffolded — sessions duplicate the one global blank (path configured in global CLAUDE.md > Configuration > `templates.area`) to `area-<slug>.md` at the project root as domains emerge.
 - Do **not** fabricate areas. A new project does not know its areas yet — the area map starts empty; areas are added when a domain has accumulated its own state.
 - Set `knowledge_intake: true` in the CLAUDE.md frontmatter.
 
-If **no:** Set `knowledge_intake: false` in frontmatter. The project can enable it later by setting `knowledge_intake: true` and scaffolding the orientation hierarchy (overview + index) per the template — or run the "Upgrade an existing project" checklist below.
+If **no:** Set `knowledge_intake: false` in frontmatter. The project can enable it later by setting `knowledge_intake: true` and scaffolding the orientation hierarchy (overview + type folders) per the template — or run the "Upgrade an existing project" checklist below.
 
 ## Step 5: Intent Engineering (Projects Only)
 
@@ -111,7 +111,7 @@ Based on the gathered answers, read the appropriate template and create:
   overview.md                  ← If Knowledge intake enabled — 30,000ft page + area map + house rules (project root)
   Context/                     ← If Tasks intake enabled
   Knowledge/                   ← If Knowledge intake enabled (Step 4a)
-  Knowledge/index.md           ← If Knowledge intake enabled — knowledge inventory + three document classes
+  Knowledge/{Methods,Reference,Research,Decisions,Records}/  ← If Knowledge intake enabled — the five base type folders, empty
 ```
 
 Do NOT create:
@@ -179,7 +179,7 @@ Summarize what was created:
 - List all files and directories
 - Confirm frontmatter tags
 - Confirm the Linear project was created and show the URL
-- Note whether Knowledge intake is enabled (`knowledge_intake: true` in frontmatter). If so, confirm the orientation hierarchy scaffolded: `overview.md` at the project root (three-hop navigation contract + area guide) and `Knowledge/index.md` (knowledge inventory, three document classes, entry-point pointer to the root overview). Confirm the area map starts empty — no fabricated areas.
+- Note whether Knowledge intake is enabled (`knowledge_intake: true` in frontmatter). If so, confirm the orientation hierarchy scaffolded: `overview.md` at the project root (three-hop navigation contract + area guide) and the five `Knowledge/` type folders (`Methods/`, `Reference/`, `Research/`, `Decisions/`, `Records/`); no index file. Confirm the area map starts empty — no fabricated areas.
 - Note the Wiki pointer stub (`Wiki/Optimized/project-{name-kebab}.md`) and the topic tags applied. Flag if topic tags are weak — strong tags matter because they drive Wiki-query discoverability.
 - Suggest: "Run `/session-start {Project Name}` when you're ready to begin working."
 
@@ -198,8 +198,8 @@ Steps:
 2. **Name the areas.** Identify the coherent slices that already have their own state — a session can work each without loading the others. Do not force a slice that isn't there yet.
 3. **Sort current-state material into `area-<slug>.md` at the project root.** Current-state material folds into the area doc for its slice; frozen-reference and append-only records keep their own class (they are not areas) and stay in `Knowledge/`. Duplicate the global blank (`templates.area`) per area.
 4. **Stamp integration modes.** Area docs and the overview carry `integration: current-truth`; a `## State` section only where it is directional — where the area is headed, what is durably true (task status and logs stay in Linear). Append-only records stay append-only.
-5. **Rebuild `Knowledge/index.md`.** Entry-point pointer to the root `[[overview]]`, then the three document classes inventorying `Knowledge/` contents — methodology, records, reference. Root orientation files are mapped by the overview's area map, not this inventory. Wire the area map in `overview.md` to the real areas.
-6. **Verify:** three hops resolve (overview → each area → its artifacts), no orphaned Knowledge docs, `integration: current-truth` on area docs, index in sync. Run `/lint-knowledge` on the `Knowledge/` scope only — root orientation files are project scaffolding, checked against the template's § Orientation hierarchy, never Wiki lint.
+5. **Place each `Knowledge/` file in its type folder** (`Methods/`, `Reference/`, `Research/`, `Decisions/`, `Records/`; a project may add more) with the Obsidian CLI (`obsidian move`, which updates wikilinks), and make sure each carries `description`, `update`, `related` and `updated` in frontmatter. Root orientation files are mapped by the overview's area map; there is no index file.
+6. **Verify:** three hops resolve (overview → each area → its artifacts), every `Knowledge/` file reachable from the folder it sits in (a `description` that says what it is; the describe tool lists the folder), `integration: current-truth` on area docs, every `Knowledge/` file in a type folder with the four frontmatter fields. Run `/lint-knowledge` on the `Knowledge/` scope only — root orientation files are project scaffolding, checked against the template's § Orientation hierarchy, never Wiki lint.
 
 ## Publishing Safety Setup (for projects with a GitHub repo)
 
