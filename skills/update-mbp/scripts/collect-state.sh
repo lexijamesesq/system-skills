@@ -219,7 +219,7 @@ emit claude_hooks_health
 if command -v jq >/dev/null 2>&1; then
 	echo "jq=present version=$(jq --version 2>/dev/null)"
 else
-	echo "jq=missing  # required by session-init.sh, vault-mcp-redirect.sh, fix-obsidian-claude-sync.sh; install: brew install jq"
+	echo "jq=missing  # required by session-init.sh, fix-obsidian-claude-sync.sh; install: brew install jq"
 fi
 CLAUDE_CLI="$(command -v claude || echo "$HOME/.local/bin/claude")"
 # Per-profile, not one hardcoded settings.json: ~/.claude-personal and
