@@ -16,7 +16,6 @@ Read the appropriate template before generating any files:
 
 - **Project:** path configured in global CLAUDE.md > Configuration > `templates.project`
 - **Hub:** path configured in global CLAUDE.md > Configuration > `templates.hub`
-- **Intake defaults:** path configured in global CLAUDE.md > Configuration > `references.intake_defaults`
 
 These templates define the current required structure. Read them at runtime to pick up any changes — do not rely on memorized structure.
 
@@ -37,12 +36,11 @@ Ask the user for:
 
 1. **Name** — Used for the folder name and the `{name-kebab}` slug (Linear project, paths). Folder uses Mac-style naming (spaces, capitalization); the slug is kebab-case.
 2. **Parent location** — Where in the vault hierarchy? Common locations:
-   - `{workspace_root}/Personal/` (personal research)
-   - `{workspace_root}/Professional/` (work projects)
-   - Or a specific hub path (e.g., `{workspace_root}/Personal/Health/`)
+   - `{workspace_root}/Projects/` (every live project; the default)
+   - Or a hub folder under it (e.g., `{workspace_root}/Projects/Agents/`)
 
    Where `{workspace_root}` is configured in global CLAUDE.md > Configuration > `workspace_root`.
-3. **Description** — 1-3 sentences: "What This Project Is." This goes in both the CLAUDE.md body and the `description` frontmatter field.
+3. **Description** — 1-3 sentences: "What This Project Is." This goes in the `description` frontmatter field; the template body has no description paragraph (the H1 and the Intent sections carry the rest).
 4. **Linear team** — All projects use the team UUID configured in global CLAUDE.md > Configuration > `linear.team_lex_id`.
 
 ## Step 3: Create Linear Project (Projects Only)
@@ -58,7 +56,7 @@ Capture the returned project URL and UUID. Both will be placed in the CLAUDE.md 
 
 ## Step 4: Routing Setup (Projects Only)
 
-Linear project ID and URL are already in frontmatter from Step 3 — tasks are routable by default. Create an empty `Context/` directory for rich context docs.
+Linear project ID and URL are already in frontmatter from Step 3 — tasks are routable by default. Linear creates the project in its default state (Backlog); if work starts now, move it to the active state in Linear. No `Context/` folder: rich context lives in `Knowledge/`.
 
 ### 4a. Knowledge
 
@@ -109,7 +107,6 @@ Based on the gathered answers, read the appropriate template and create:
 {parent}/{Project Name}/
   CLAUDE.md                    ← From project template, filled with gathered info + Linear project URL
   overview.md                  ← If Knowledge intake enabled — 30,000ft page + area map + house rules (project root)
-  Context/                     ← If Tasks intake enabled
   Knowledge/                   ← If Knowledge intake enabled (Step 4a)
   Knowledge/{Methods,Reference,Research,Decisions,Records}/  ← If Knowledge intake enabled — the five base type folders, empty
 ```
