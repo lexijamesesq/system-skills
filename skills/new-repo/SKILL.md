@@ -211,10 +211,11 @@ installed caller on the relevant revision; YAML names or an unrelated green run
 are insufficient evidence.
 
 Use direct GitHub API calls with the prepared bodies under the authorized
-administrative identity. Read back every changed object and compare the intended
-state. Skip writes when it already conforms. If a permission or state check fails,
-stop that mutation and report the exact prerequisite; do not retry through another
-identity silently.
+administrative identity: the owner's own login, as the identity section gives,
+since the author App is refused on these writes. Read back every changed object
+and compare the intended state. Skip writes when it already conforms. If a
+permission or state check fails under the owner's login, stop that mutation and
+report the exact prerequisite; do not retry through another identity silently.
 
 Keep environment creation/settings, permitted branch/tag policies, App coverage
 and credential delivery separate. Use the README's secret map, without
