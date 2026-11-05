@@ -49,6 +49,25 @@ assertion do not grant it. Honor applicable owner authorization already given in
 this session and ask only for missing authority. Never silently substitute an
 author App for an administrator or an administrator for source authorship.
 
+The estate gives sessions no infrastructure identity for creation or
+administration: the `gh` adapter always acts as the author App, and GitHub
+answers `Resource not accessible by integration` when that App creates a
+repository, writes an environment, branch policy, variable, secret, ruleset or
+repository setting. That answer is expected, not a stop. With the owner's
+authorization in this session, run that one operation outside the adapter under
+her own login, then return to the adapter for every source operation:
+
+```sh
+env -u GH_CONFIG_DIR -u GH_TOKEN -u CLAUDECODE /opt/homebrew/bin/gh <command>
+```
+
+Her login exists on the workstation (`gh auth status` under that environment
+shows `lexijamesesq`); the session's `GH_CONFIG_DIR` points at a sentinel
+account precisely so the adapter never reaches it by accident. Disclose each
+use. Do not use her login for commits, pushes or pull requests, and do not
+report an owner-identity step as an unmet prerequisite when the owner has
+authorized it.
+
 Use a durable working checkout of reviewed Dotty source or a published release. Set
 `DOTTY_CHECKOUT` to that checkout and `REPOSITORY_CHECKOUT` to the target clone or
 worktree. If the available Dotty path is bare, outdated or missing the assets,
@@ -192,10 +211,11 @@ installed caller on the relevant revision; YAML names or an unrelated green run
 are insufficient evidence.
 
 Use direct GitHub API calls with the prepared bodies under the authorized
-administrative identity. Read back every changed object and compare the intended
-state. Skip writes when it already conforms. If a permission or state check fails,
-stop that mutation and report the exact prerequisite; do not retry through another
-identity silently.
+administrative identity: the owner's own login, as the identity section gives,
+since the author App is refused on these writes. Read back every changed object
+and compare the intended state. Skip writes when it already conforms. If a
+permission or state check fails under the owner's login, stop that mutation and
+report the exact prerequisite; do not retry through another identity silently.
 
 Keep environment creation/settings, permitted branch/tag policies, App coverage
 and credential delivery separate. Use the README's secret map, without
