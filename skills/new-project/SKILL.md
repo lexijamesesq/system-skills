@@ -32,30 +32,32 @@ Ask the operator for:
 - **The repository.** Its name, and whether it is public or private. Intent is published with the repository, so for a public one, agree which rules go in the instruction file and which belong on the project's Notion overview.
 - **Where its Notion page goes.** She names the parent page.
 
-A project with no code still needs a folder for its sessions to start in, because that is where the instruction file lives. Ask her where that is before going on.
+A project with no code has no repository. It still needs a folder for its sessions to start in, because that is where the instruction file lives: ask her which folder. For that kind of project, skip step 3, and in step 5 write `CLAUDE.md` in that folder.
 
 ## 2. The project in Linear
 
-Call `linear_createProject` with the name, the description, and `teamIds` holding the team UUID from global CLAUDE.md > Configuration > `linear.team_lex_id`. Keep the returned project id and URL.
+First look in Linear for a project of this name. If one exists, ask her whether to use it, and if so take its id and URL and create nothing. A run that stopped partway leaves one behind, and creating a second would split the project's work across two.
+
+Otherwise call `linear_createProject` with the name, the description, and `teamIds` holding the team UUID from global CLAUDE.md > Configuration > `linear.team_lex_id`. Keep the returned project id and URL.
 
 If this fails, stop. Nothing else is created until the Linear project exists.
 
 ## 3. The repository
 
-Run `/new-repo` with the name, the description and the visibility. It creates the repository, installs the estate baseline, and seeds `CLAUDE.md` and `AGENTS.md`.
+Skip this step for a project with no code. Otherwise run `/new-repo` with the name, the description and the visibility. It creates the repository, installs the estate baseline, and seeds `CLAUDE.md` and `AGENTS.md`.
 
 ## 4. The documentation
 
-Run `/project-docs setup` for the project, with the parent page she named and the repository as the folder sessions start in. It creates the project's page and Knowledge database in Notion and returns their two pointers. A new project starts with no areas.
+Run `/project-docs setup` for the project, with the parent page she named and the folder sessions start in: the repository, or the folder she named in step 1. It creates the project's page and Knowledge database in Notion and returns their two pointers. A new project starts with no areas.
 
 ## 5. The instruction file
 
-Complete the repository's `CLAUDE.md` from what you now hold:
+Complete the `CLAUDE.md` in the folder sessions start in. `/new-repo` seeded it for a repository; for a project with no code, write it there from the same template.
 
-- Front matter: `linear_project_id` and `linear_url` from step 2; `notion_project` and `notion_knowledge` from step 4.
-- The **Intent** section from step 1.
+- Front matter: `linear_project_id` and `linear_url` from step 2; `notion_project` and `notion_knowledge` from step 4. Remove a `docs_home` line if the seeded file has one.
+- The **Intent** section from step 1, added if the seeded file has none.
 
-This is a change to the repository, so it goes through that repository's review like any other.
+In a repository this is a change to the repository, so it goes through its review like any other.
 
 ## 6. Report
 
@@ -67,5 +69,5 @@ Tell the operator what exists now, with links: the Linear project, the repositor
 | --- | --- |
 | The operator cancels | Say what was gathered and what, if anything, was already created. Create nothing further |
 | The Linear project cannot be created | Report the error and stop |
-| A repository or Notion page of that name already exists | Ask before going on. Never overwrite |
+| A Linear project, repository or Notion page of that name already exists | Ask whether to use it. Never create a second or overwrite |
 | `/new-repo` or `/project-docs setup` stops partway | Report where it stopped. Do not complete the instruction file with missing values |
