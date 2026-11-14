@@ -1,182 +1,73 @@
 ---
 name: new-project
 description: >
-  Triggers when the user says "create a new project", "new project",
-  "set up a project", "new hub", "/new-project", or similar
-  project/hub creation requests.
+  Set up a new project end to end: its project in Linear, its repository, its
+  documentation in Notion, and the instruction file that ties them together.
+  Triggers on "create a new project", "new project", "set up a project",
+  "/new-project", or similar.
 ---
 
-# New Project Setup
+# New project
 
-Interactive protocol for creating a new Claude-managed project or hub. Walk through each step with the user, gathering answers before creating anything.
+A project is four things, each with one home:
 
-## Templates
+| Thing | Home | Made by |
+| --- | --- | --- |
+| The work | A project in Linear | This skill |
+| The code | A repository | `/new-repo` |
+| The documentation | A page and a Knowledge database in Notion | `/project-docs setup` |
+| The instruction file | `CLAUDE.md` at the repository's root | `/new-repo` seeds it; this skill completes it |
 
-Read the appropriate template before generating any files:
+The instruction file is the one a session reads first. It says what the project is and what it is for, and it points at the other three. This skill puts the four in place in order and carries each one's identifiers into that file.
 
-- **Project:** path configured in global CLAUDE.md > Configuration > `templates.project`
-- **Hub:** path configured in global CLAUDE.md > Configuration > `templates.hub`
+Gather everything in step 1 before creating anything.
 
-These templates define the current required structure. Read them at runtime to pick up any changes — do not rely on memorized structure.
+## 1. Gather
 
-## Step 1: Determine Type
+Ask the operator for:
 
-Ask the user:
+- **Name.** Used for the Linear project, the repository and the Notion page.
+- **Description.** One to three sentences: what the project is.
+- **Intent.** The objective (the problem it solves), health metrics (what must not get worse), decision authority (what a session may do on its own and what needs her yes), and stop rules (when a session halts or asks).
+- **The repository.** Its name, and whether it is public or private. Intent is published with the repository, so for a public one, agree which rules go in the instruction file and which belong on the project's Notion overview.
+- **Where its Notion page goes.** She names the parent page.
 
-> Is this a **Project** or a **Hub**?
->
-> - **Project** = Active work with state tracking (Re-entry Cue, blockers, decisions; queue lives in Linear)
-> - **Hub** = Organizes related subprojects, no state of its own
+A project with no code has no repository. It still needs a folder for its sessions to start in, because that is where the instruction file lives: ask her which folder. For that kind of project, skip step 3, and in step 5 write `CLAUDE.md` in that folder.
 
-If Hub, skip Steps 3, 4, and 5 (those are project-only).
+## 2. The project in Linear
 
-## Step 2: Gather Core Info
+First look in Linear for a project of this name. If one exists, ask her whether to use it, and if so take its id and URL and create nothing. A run that stopped partway leaves one behind, and creating a second would split the project's work across two.
 
-Ask the user for:
+Otherwise call `linear_createProject` with the name, the description, and `teamIds` holding the team UUID from global CLAUDE.md > Configuration > `linear.team_lex_id`. Keep the returned project id and URL.
 
-1. **Name** — Used for the folder name and the `{name-kebab}` slug (Linear project, paths). Folder uses Mac-style naming (spaces, capitalization); the slug is kebab-case.
-2. **Parent location** — Where in the vault hierarchy? Common locations:
-   - `{workspace_root}/Projects/` (every live project; the default)
-   - Or a hub folder under it (e.g., `{workspace_root}/Projects/Agents/`)
+If this fails, stop. Nothing else is created until the Linear project exists.
 
-   Where `{workspace_root}` is configured in global CLAUDE.md > Configuration > `workspace_root`.
-3. **Description** — 1-3 sentences: "What This Project Is." This goes in the `description` frontmatter field; the template body has no description paragraph (the H1 and the Intent sections carry the rest).
-4. **Linear team** — All projects use the team UUID configured in global CLAUDE.md > Configuration > `linear.team_lex_id`.
+## 3. The repository
 
-## Step 3: Create Linear Project (Projects Only)
+Skip this step for a project with no code. Otherwise run `/new-repo` with the name, the description and the visibility. It creates the repository, installs the estate baseline, and seeds `CLAUDE.md` and `AGENTS.md`.
 
-Call `linear_createProject` with:
+## 4. The documentation
 
-- `name`: the project name from Step 2
-- `teamIds`: a single-element array containing the team UUID resolved from global CLAUDE.md > Configuration > `linear.team_lex_id`.
-- `description`: the short description from Step 2
-- `content`: optional expanded content if the user provided additional context
+Run `/project-docs setup` for the project, with the parent page she named and the folder sessions start in: the repository, or the folder she named in step 1. It creates the project's page and Knowledge database in Notion and returns their two pointers. A new project starts with no areas.
 
-Capture the returned project URL and UUID. Both will be placed in the CLAUDE.md frontmatter as `linear_url` and `linear_project_id`.
+## 5. The instruction file
 
-## Step 4: Routing Setup (Projects Only)
+Complete the `CLAUDE.md` in the folder sessions start in. `/new-repo` seeded it for a repository; for a project with no code, write it there from the same template.
 
-Linear project ID and URL are already in frontmatter from Step 3 — tasks are routable by default. Linear creates the project in its default state (Backlog); if work starts now, move it to the active state in Linear. No `Context/` folder: rich context lives in `Knowledge/`.
+- Front matter: `linear_project_id` and `linear_url` from step 2; `notion_project` and `notion_knowledge` from step 4. Remove a `docs_home` line if the seeded file has one.
+- The **Intent** section from step 1, added if the seeded file has none.
 
-### 4a. Knowledge
+In a repository this is a change to the repository, so it goes through its review like any other.
 
-Ask the user:
+## 6. Report
 
-> Will this project accumulate durable reference material across sessions — architectural explanations, research spikes, procedures, posture assessments? (See the "Knowledge Folder (Optional)" section in the project template for when to adopt.)
+Tell the operator what exists now, with links: the Linear project, the repository, the Notion page. Say what is still open, such as a pull request waiting on her. The next session started in the repository will be pointed at all of it.
 
-If **yes:**
+## Stop when
 
-- Create a `Knowledge/` directory
-- Scaffold the **orientation hierarchy** from the project template's "Orientation hierarchy" section (`templates.project`) — read the overview skeleton there at runtime and create it, filling the blanks with the project's name and `{today}`:
-  - `overview.md` — at the **project root**: the 30,000ft page (what the project is, how work moves, an empty area map + the "what counts as an area" guide, house rules carrying the three-hop navigation contract).
-  - `Knowledge/Methods/`, `Knowledge/Reference/`, `Knowledge/Research/`, `Knowledge/Decisions/`, `Knowledge/Records/` — the five base type folders, created empty (a `.gitkeep` is not needed; Obsidian shows empty folders). There is no index file: every `Knowledge/` file carries a frontmatter `description`, and that is the inventory (contract: the wiki repo's `spec/knowledge-files.md`).
-  - Area docs are **not** scaffolded — sessions duplicate the one global blank (path configured in global CLAUDE.md > Configuration > `templates.area`) to `area-<slug>.md` at the project root as domains emerge.
-- Do **not** fabricate areas. A new project does not know its areas yet — the area map starts empty; areas are added when a domain has accumulated its own state.
-- Set `knowledge_intake: true` in the CLAUDE.md frontmatter.
-
-If **no:** Set `knowledge_intake: false` in frontmatter. The project can enable it later by setting `knowledge_intake: true` and scaffolding the orientation hierarchy (overview + type folders) per the template — or run the "Upgrade an existing project" checklist below.
-
-## Step 5: Intent Engineering (Projects Only)
-
-Ask the user:
-
-> Does this project involve autonomous agent workflows or sustained multi-session development?
-
-If **yes**, gather:
-
-- **Objective** — What problem does this solve? (1-2 sentences, framed as a problem statement)
-- **Desired Outcomes** — 2-4 observable state changes from the user's perspective
-- **Health Metrics** — What must NOT degrade while pursuing outcomes?
-- **Strategic Context** — What broader system or workflow does this project operate within? (Skip if standalone.)
-- **Decision Authority** — What can agents do autonomously vs. what requires human confirmation?
-- **Stop Rules** — When should agents halt or escalate?
-
-Include these as active sections in the CLAUDE.md.
-
-Reference for the user if they want background: path configured in global CLAUDE.md > Configuration > `references.three_disciplines`
-
-If **no:** Leave the intent engineering sections as HTML comments in the CLAUDE.md (they exist in the template for future activation).
-
-## Step 6: Create Structure
-
-Based on the gathered answers, read the appropriate template and create:
-
-**For Projects:**
-
-```text
-{parent}/{Project Name}/
-  CLAUDE.md                    ← From project template, filled with gathered info + Linear project URL
-  overview.md                  ← If Knowledge intake enabled — 30,000ft page + area map + house rules (project root)
-  Knowledge/                   ← If Knowledge intake enabled (Step 4a)
-  Knowledge/{Methods,Reference,Research,Decisions,Records}/  ← If Knowledge intake enabled — the five base type folders, empty
-```
-
-Do NOT create:
-
-- `backlog.json` — task tracking is in Linear
-- `backlog-archive.json` — this exists only for migrated projects (pre-cutoff)
-- `progress.md` — session narrative is in Linear Project Updates
-- `progress-archive.md` — this exists only for migrated projects (pre-cutoff)
-
-**For Hubs:**
-
-```text
-{parent}/{Hub Name}/
-  CLAUDE.md              ← From hub template, filled with gathered info
-```
-
-**CLAUDE.md requirements (per the canonical template):**
-
-- Frontmatter: `status: active`, `description`, `updated`, `linear_project_id`, `linear_url`, `knowledge_intake` (no `tags`: the tag taxonomy was retired 2026-11-03; project discovery is by path)
-- Template reference: the `template` frontmatter key, per the template's Frontmatter contract
-- Re-entry Cue section (initialized as "No work in progress" or absent)
-- Key Files table (only non-discoverable files)
-- `build_home` frontmatter key (a list of absolute paths, one per repo) if applicable — see Publishing Safety Setup below, which also emits the paired repo working-guide CLAUDE.md
-- Intent sections from Step 5 (if applicable)
-
-## Step 7: Report
-
-Summarize what was created:
-
-- List all files and directories
-- Confirm the Linear project was created and show the URL
-- Note whether Knowledge intake is enabled (`knowledge_intake: true` in frontmatter). If so, confirm the orientation hierarchy scaffolded: `overview.md` at the project root (three-hop navigation contract + area guide) and the five `Knowledge/` type folders (`Methods/`, `Reference/`, `Research/`, `Decisions/`, `Records/`); no index file. Confirm the area map starts empty — no fabricated areas.
-- Suggest: "Run `/session-start {Project Name}` when you're ready to begin working."
-
-## Upgrade an existing project to the orientation hierarchy
-
-`/new-project` builds the orientation hierarchy into every NEW project. Existing projects are **not** migrated automatically. This checklist ships the *capability* to upgrade one; it is run per-project, under operator direction, as its own slice with its own review — **do not** run it as a side effect of anything else.
-
-Scope guards:
-
-- **The System project stays grandfathered.** Its flat-root + `Knowledge/` layout is deliberate — do not apply this to it.
-- Applying this to a real project (sorting its live Knowledge docs) is a judgment task per project, not a mechanical sweep. Run it when the operator asks, one project at a time.
-
-Steps:
-
-1. **Write `overview.md` at the project root** from the template skeleton — the durable "what this project is," how work moves, an empty (or illustrative) area map, and the house rules (three-hop navigation contract).
-2. **Name the areas.** Identify the coherent slices that already have their own state — a session can work each without loading the others. Do not force a slice that isn't there yet.
-3. **Sort current-state material into `area-<slug>.md` at the project root.** Current-state material folds into the area doc for its slice; frozen-reference and append-only records keep their own class (they are not areas) and stay in `Knowledge/`. Duplicate the global blank (`templates.area`) per area.
-4. **Keep orientation files current-truth.** Area docs and the overview are rewritten in place, never annotated (their `description` ends "Current truth, mutated in place."); a `## State` section only where it is directional — where the area is headed, what is durably true (task status and logs stay in Linear). Append-only records stay append-only.
-5. **Place each `Knowledge/` file in its type folder** (`Methods/`, `Reference/`, `Research/`, `Decisions/`, `Records/`; a project may add more) with the Obsidian CLI (`obsidian move`, which updates wikilinks), and make sure each carries `description`, `update`, `related` and `updated` in frontmatter. Root orientation files are mapped by the overview's area map; there is no index file.
-6. **Verify:** three hops resolve (overview → each area → its artifacts), every `Knowledge/` file reachable from the folder it sits in (a `description` that says what it is; the describe tool lists the folder), every `Knowledge/` file in a type folder with the four frontmatter fields. Run the contract lint (the wiki plugin's `knowledge-description` skill) on the `Knowledge/` scope only — root orientation files are project scaffolding, checked against the template's § Orientation hierarchy, not the contract.
-
-## Publishing Safety Setup (for projects with a GitHub repo)
-
-When the project has its own git repo that pushes to GitHub, create it after the vault structure, through the `new-repo` skill (below). The repo lives outside the vault (operator rule: a git repo and an Obsidian folder are never the same directory) — under `~/Repos/{name}` for ordinary projects, `~/bin/{name}` for harness/system setup, or `~/Agents/{name}` for an agent's dev/deploy split.
-
-**The CLAUDE.md pair:** add `build_home: ["{abs-path-to-repo}"]` to the vault project's frontmatter (a list — a project can have more than one repo). In the repo itself, the seeded CLAUDE.md carries `docs_home: "{abs-path-to-this-vault-project}"` pointing back. The repo file must be complete on its own — engines, CI runners, and cloud sessions see only the repo, never the vault.
-
-**Creating the repo:** use the `new-repo` skill for its reviewed native setup procedure and Dotty assets. It prepares source changes and direct settings operations, verifies reviewer and merger App access and enrollment, and preserves existing repository extensions. Follow that procedure for creation, updates and conforming repeats. Use Dotty's `repo-claude-template.md` for the repository working guide and set its `docs_home` to the vault project.
-
-Not all projects have GitHub repos. Hub-only or vault-only projects skip this section.
-
-## Stop Rules
-
-| Condition | Action |
-| ----------- | -------- |
-| User cancels at any step | Report what was gathered so far and stop. Do not create partial artifacts. |
-| Linear project creation fails | Report the error and stop. Do not create vault structure until Linear project exists. |
-| Parent location doesn't exist | Ask user to confirm creation or provide a different path. |
-| Project name conflicts with existing folder | Warn and ask for a different name. Do not overwrite. |
-| Template files not found | Report which templates are missing and stop. |
+| Condition | Do |
+| --- | --- |
+| The operator cancels | Say what was gathered and what, if anything, was already created. Create nothing further |
+| The Linear project cannot be created | Report the error and stop |
+| A Linear project, repository or Notion page of that name already exists | Ask whether to use it. Never create a second or overwrite |
+| `/new-repo` or `/project-docs setup` stops partway | Report where it stopped. Do not complete the instruction file with missing values |
