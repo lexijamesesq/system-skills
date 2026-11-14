@@ -125,7 +125,8 @@ Codex reads `AGENTS.md` and Claude reads `CLAUDE.md`:
   bypass, PR body validation, testing discipline). Follow it with this repository's own instructions (setup,
   build/test, CI, conventions). Leave out Dotty's suite paragraph.
 - `CLAUDE.md` carries the `repo-claude-template.md` frontmatter (`type/claude-repo`,
-  `description`, `docs_home`), a `# <repository name>` heading (markdownlint's
+  `description`, and the project's Linear and Notion pointers once they exist; leave
+  a pointer out rather than fill it with a placeholder), a `# <repository name>` heading (markdownlint's
   MD041 rejects a file whose first content line is the import), and an
   `@AGENTS.md` line that imports the rest. In `AGENTS.md`, put the repository's
   own section under `##` headings below the shared contract's single H1.
