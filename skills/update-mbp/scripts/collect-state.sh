@@ -136,13 +136,12 @@ for repo in "$HOME/bin/dotty" "$HOME/bin/dotty-private"; do
 	fi
 done
 
-emit git_repos_outside_vault
-# Find git repos in $HOME, excluding the Obsidian vault and node_modules/Library noise.
-# Obsidian Sync handles vault content; we care about everything else with a remote.
+emit git_repos
+# Find git repos in $HOME, excluding node_modules/Library noise.
 find "$HOME" \
 	-maxdepth 5 \
 	-type d \
-	\( -name node_modules -o -name Library -o -name .Trash -o -name "Vaults" -o -name ".cache" -o -name ".npm" -o -name ".gem" -o -name "go" -o -name ".cargo" -o -name ".rustup" \) -prune \
+	\( -name node_modules -o -name Library -o -name .Trash -o -name ".cache" -o -name ".npm" -o -name ".gem" -o -name "go" -o -name ".cargo" -o -name ".rustup" \) -prune \
 	-o -type d -name .git -print 2>/dev/null |
 	while read -r gitdir; do
 		repo="${gitdir%/.git}"
@@ -153,51 +152,6 @@ find "$HOME" \
 		dirty=$(git -C "$repo" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 		printf '%s|branch=%s|head=%s|dirty=%s|remote=%s\n' "$rel" "$branch" "$head" "$dirty" "$remote"
 	done | sort
-
-emit obsidian_app
-F="$HOME/Library/Application Support/obsidian"
-if [ -d "$F" ]; then
-	echo "support_dir=present"
-	find "$F" -mindepth 1 -maxdepth 1 -exec basename {} \; 2>/dev/null | sort | sed 's/^/entry=/'
-else
-	echo "support_dir=missing"
-fi
-# Obsidian itself usually installs as a cask; check version if present
-if [ -d "/Applications/Obsidian.app" ]; then
-	v=$(defaults read "/Applications/Obsidian.app/Contents/Info" CFBundleShortVersionString 2>/dev/null)
-	echo "obsidian_app_version=${v:-unknown}"
-else
-	echo "obsidian_app=missing"
-fi
-
-emit obsidian_vault_plugins
-# Plugins are per-vault under .obsidian/plugins/. Set VAULT_ROOT (same env var
-# used by dotty's vault-aware hooks) to your vault's absolute path to enable
-# this section; skipped if unset — this script has no built-in guess at where
-# your vault lives.
-vault="${VAULT_ROOT:-}"
-if [ -z "$vault" ]; then
-	echo "vault=unset  # export VAULT_ROOT to enable"
-elif [ -d "$vault/.obsidian" ]; then
-	echo "vault=$vault"
-	if [ -d "$vault/.obsidian/plugins" ]; then
-		for p in "$vault/.obsidian/plugins"/*/; do
-			[ -d "$p" ] || continue
-			name=$(basename "$p")
-			ver=$(grep -h '"version"' "$p/manifest.json" 2>/dev/null | head -1 | sed 's/.*"version" *: *"\([^"]*\)".*/\1/')
-			echo "plugin=${name}@${ver:-?}"
-		done | sort
-	fi
-	# Themes
-	if [ -d "$vault/.obsidian/themes" ]; then
-		for t in "$vault/.obsidian/themes"/*/; do
-			[ -d "$t" ] || continue
-			echo "theme=$(basename "$t")"
-		done | sort
-	fi
-else
-	echo "vault=$vault  # no .obsidian dir found there"
-fi
 
 emit ssh_known_keys
 find "$HOME/.ssh" -maxdepth 1 -name '*.pub' -exec basename {} \; 2>/dev/null | sort
@@ -219,7 +173,7 @@ emit claude_hooks_health
 if command -v jq >/dev/null 2>&1; then
 	echo "jq=present version=$(jq --version 2>/dev/null)"
 else
-	echo "jq=missing  # required by session-init.sh, fix-obsidian-claude-sync.sh; install: brew install jq"
+	echo "jq=missing  # required by session-init.sh; install: brew install jq"
 fi
 CLAUDE_CLI="$(command -v claude || echo "$HOME/.local/bin/claude")"
 # Per-profile, not one hardcoded settings.json: ~/.claude-personal and

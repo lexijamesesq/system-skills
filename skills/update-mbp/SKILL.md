@@ -14,7 +14,6 @@ Designed for the pre-travel scenario: WFH happens on the Mini, the MBP drifts be
 - The skill runs on a "source" machine and updates a "target" machine reachable via SSH alias `mbp` in `~/.ssh/config`. Replace `mbp` with whatever alias matches your target; the name in this skill is illustrative.
 - Credentials come from the 1Password SSH agent (`IdentityAgent Host *` in the same config). The user does not pass keys explicitly. Adapt if you use a different agent.
 - macOS major versions are intentionally divergent across machines. **Never propose a major macOS upgrade.** Only minor (security) bumps inside the target's existing major track are surfaced.
-- The Obsidian vault is synced by Obsidian Sync, not by this skill. If plugin counts diverge, flag it as an Obsidian Sync configuration issue — do not try to copy plugin folders.
 - `~/bin/dotty` is public (rules, git hooks, installers); `~/bin/dotty-private` is private (CLAUDE.md, settings, blueprint slices, and the `operator` plugin this skill ships in). The script paths below resolve through `${CLAUDE_PLUGIN_ROOT}` — the installed plugin copy. The blueprint apply lane references dotty-private because the blueprint slices live there.
 
 ## Workflow
@@ -40,7 +39,6 @@ ${CLAUDE_PLUGIN_ROOT}/skills/update-mbp/scripts/diff-state.sh \
 Produces a sectioned report with `APPLY:` lines that the apply phase consumes. Read it and present the summary to the user. Always look for:
 
 - **Dirty files in baseline (Mini) dotty repos.** If the Mini has uncommitted changes in dotty/dotty-private, those changes will NOT be on the MBP after a pull from origin. Flag and ask whether to commit + push first.
-- **Obsidian plugin count = 0 on target while baseline > 0.** Indicates Obsidian Sync isn't syncing plugins to the MBP. Do not auto-fix; flag for the user to enable plugin sync in Obsidian settings.
 - **Safari major-version updates** (e.g., Safari 26.x offered to a 15.x machine). Filtered out of auto-apply by both diff (it's reported as "Safari update") and apply (regex skip).
 - **macOS minor update available** but `--macos` requires opt-in because it restarts the machine.
 - **hazel's `real-seed.json` present on baseline, absent on target.** Never auto-synced — a deliberate, undeclared hand-carry by hazel's own design. Flag it; the operator decides whether to carry it over.
@@ -53,6 +51,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/update-mbp/scripts/apply-updates.sh \
 ```
 
 **Default lanes** (always applied, low risk — only touch things already installed):
+
 - `brew upgrade --formula` for outdated formulae
 - `brew upgrade --cask` for outdated casks
 - `mas upgrade` per outdated MAS app id
@@ -63,6 +62,7 @@ ${CLAUDE_PLUGIN_ROOT}/skills/update-mbp/scripts/apply-updates.sh \
 - `bash ~/bin/dotty-private/.claude/blueprint/bootstrap.sh` (system-blueprint apply, additive — reproduces declared MCP/hook/plugin state on the target)
 
 **Opt-in lanes** (require explicit flag — installs new things, human decides relevance):
+
 - `--new-formulae` — install formulae present on Mini but missing on MBP
 - `--new-casks` — install GUI apps present on Mini but missing on MBP
 - `--new-mas` — install MAS apps present on Mini but missing on MBP
@@ -108,7 +108,7 @@ When the user adds `--auto`, `--all`, or "go ahead with everything," do NOT take
 
 ## Self-updating apps
 
-Many casks (Chrome, Slack, Arc, 1Password, Discord, Signal, Raycast, Obsidian, etc.) update themselves outside Homebrew. The collector calls `brew outdated --cask` **without** `--greedy-auto-updates`, so the cask-upgrade lane only acts on casks brew is confident need help. A second informational section (`brew_outdated_cask_auto_update_informational`) lists self-updating casks brew sees as drifted — these are reported but never auto-upgraded; let the apps update themselves.
+Many casks (Chrome, Slack, Arc, 1Password, Discord, Signal, Raycast, etc.) update themselves outside Homebrew. The collector calls `brew outdated --cask` **without** `--greedy-auto-updates`, so the cask-upgrade lane only acts on casks brew is confident need help. A second informational section (`brew_outdated_cask_auto_update_informational`) lists self-updating casks brew sees as drifted — these are reported but never auto-upgraded; let the apps update themselves.
 
 If you ever need to force-upgrade a self-updating cask via brew, do it manually with `brew upgrade --cask --greedy-auto-updates <name>` rather than changing the skill's defaults.
 
@@ -125,7 +125,7 @@ If the user is ambiguous ("don't bother with X"), default to **skip** and confir
 
 The exclusions file records the durable "exclude" decisions. It is **declared state**: the source is `update-mbp-exclusions.txt` at the root of dotty-private, and the blueprint's `update-mbp-exclusions` slice installs it at the fixed path `${XDG_CONFIG_HOME:-~/.config}/estate/update-mbp-exclusions.txt`, which is the only path `scripts/diff-state.sh` reads. Nothing is read from or written to this skill's own directory — that is a plugin-cache copy, replaced on every plugin update. Format:
 
-```
+```text
 formula=<formula-name>   # YYYY-MM-DD: short reason
 cask=<cask-name>         # YYYY-MM-DD: short reason
 mas=<numeric-app-id>     # YYYY-MM-DD: short reason

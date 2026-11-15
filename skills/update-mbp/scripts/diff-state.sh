@@ -286,11 +286,11 @@ for repo in dotty dotty-private; do
 	fi
 done
 
-hd "Git repos outside vault — present on baseline but absent on target"
+hd "Git repos — present on baseline but absent on target"
 # Match by relative path. We don't auto-clone; just report so user can decide.
 comm -23 \
-	<(section "$BASE" git_repos_outside_vault | cut -d'|' -f1 | sort -u) \
-	<(section "$TGT" git_repos_outside_vault | cut -d'|' -f1 | sort -u) |
+	<(section "$BASE" git_repos | cut -d'|' -f1 | sort -u) \
+	<(section "$TGT" git_repos | cut -d'|' -f1 | sort -u) |
 	while read -r r; do
 		[ -n "$r" ] || continue
 		if is_excluded repo "$r"; then
@@ -302,9 +302,9 @@ comm -23 \
 
 hd "Git repos present on both — branch/HEAD divergence"
 # shellcheck disable=SC2034  # branch/dirty/remote fields are positional filler; only path + head are consumed
-section "$BASE" git_repos_outside_vault | while IFS='|' read -r path b_branch b_head b_dirty b_remote; do
+section "$BASE" git_repos | while IFS='|' read -r path b_branch b_head b_dirty b_remote; do
 	[ -n "$path" ] || continue
-	tline=$(section "$TGT" git_repos_outside_vault | awk -F'|' -v p="$path" '$1==p {print; exit}')
+	tline=$(section "$TGT" git_repos | awk -F'|' -v p="$path" '$1==p {print; exit}')
 	[ -z "$tline" ] && continue
 	t_head=$(printf '%s' "$tline" | awk -F'|' '{print $3}' | sed 's/head=//')
 	b_head_v=$(printf '%s' "$b_head" | sed 's/head=//')
@@ -323,23 +323,6 @@ section "$BASE" git_repos_outside_vault | while IFS='|' read -r path b_branch b_
 		esac
 	fi
 done
-
-hd "Obsidian"
-b_av=$(kv "$BASE" obsidian_app obsidian_app_version)
-t_av=$(kv "$TGT" obsidian_app obsidian_app_version)
-if [ "$b_av" != "$t_av" ]; then
-	echo "  Obsidian app: baseline=$b_av  target=$t_av"
-	echo "  → Obsidian app updates itself; or if installed via Homebrew cask, will be covered by 'brew upgrade --cask obsidian' if outdated above."
-fi
-# Plugins/themes are vault-resident and synced via Obsidian Sync; just report.
-b_plugins=$(section "$BASE" obsidian_vault_plugins | grep '^plugin=' | sort -u)
-t_plugins=$(section "$TGT" obsidian_vault_plugins | grep '^plugin=' | sort -u)
-b_count=$(printf '%s\n' "$b_plugins" | grep -c '^plugin=' || true)
-t_count=$(printf '%s\n' "$t_plugins" | grep -c '^plugin=' || true)
-echo "  vault plugins: baseline=$b_count  target=$t_count (synced via Obsidian Sync)"
-if [ "$b_count" != "$t_count" ] && [ "$b_count" -gt 0 ]; then
-	diff <(printf '%s\n' "$b_plugins") <(printf '%s\n' "$t_plugins") | sed 's/^/    /'
-fi
 
 hd "Blueprint-declared fixed-path files"
 # Presence-only (never contents) so a machine missing a declared file is a
